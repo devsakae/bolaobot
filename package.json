@@ -4,6 +4,7 @@
   "description": "Bot de WhatsApp que gerencia sistema de bolão (apostas/fantasy game) de futebol",
   "main": "index.js",
   "scripts": {
+    "start": "node --env-file=.env index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -22,5 +23,11 @@
   "bugs": {
     "url": "https://github.com/devsakae/bolaobot/issues"
   },
-  "homepage": "https://github.com/devsakae/bolaobot#readme"
+  "homepage": "https://github.com/devsakae/bolaobot#readme",
+  "dependencies": {
+    "axios": "^1.5.1",
+    "prompt-sync": "^4.2.0",
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "^1.22.1"
+  }
 }
