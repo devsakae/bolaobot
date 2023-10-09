@@ -1,3 +1,3 @@
 next_modules/
-*.env*
+*.env
 */.env*
