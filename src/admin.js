@@ -1,7 +1,7 @@
 const { client } = require('./whatsappconnection');
 const axios = require('axios');
-const { writeTeams } = require('../data/fileHandler');
-const teams = require('../data/teams.json');
+const { writeData } = require('../utils/fileHandler');
+const data = require('../data/data.json');
 const rapidapiurl = 'https://footapi7.p.rapidapi.com/api';
 
 async function fetchData(url) {
@@ -25,11 +25,11 @@ function ping() {
 }
 
 async function start(info) {
-  (Number(info.page) < 1) && teams.boloes.push({ ...info.team, active: true, group: info.group });
+  (Number(info.page) < 1) && data.boloes.push({ ...info.team, status: 'ativo', group: info.group });
   try {
     const dataFromApi = await fetchData(rapidapiurl + '/team/' + info.team.id + '/matches/next/' + info.page);
-    teams[info.team.name] = dataFromApi.events;
-    writeTeams(teams);
+    data[info.team.name] = dataFromApi.events;
+    writeData(data);
     while (dataFromApi.hasNextPage) {
       start({ ...info, page: info.page++ })
     }

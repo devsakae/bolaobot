@@ -1,49 +1,54 @@
 const { client } = require('./src/whatsappconnection');
-const { start, pong } = require('./src/admin');
-const teams = require('./data/teams.json');
+const { start } = require('./src/admin');
+const { getCommand } = require('./utils/functions');
+const data = require('./data/data.json');
+const prompts = require('./data/prompts.json');
+const { writeData } = require('./utils/fileHandler');
 
 (async () => {
-  console.log('Bem vindo ao BolãoBot! Aguarde, carregando a conexão com o WhatsApp...');
-  if (!process.env.BOLAO_OWNER) return console.error('ERRO: Você precisa configurar um administrador antes de iniciar o bot. Leia as instruções em https://bolao.devsakae.tech');
-  console.log('Administrador configurado:', process.env.BOLAO_OWNER.slice(0, -5));
+  console.log(prompts.admin.welcome);
+  process.env.BOLAO_OWNER ? console.log('Telefone do administrador:', process.env.BOLAO_OWNER.slice(2, -5)) : console.error(prompts.admin.no_owner);
 })();
 
-
 client.on('message', async (m) => {
-  if (m.author === process.env.BOLAO_OWNER) {    
-    if (m.body.startsWith('!bolao config')) {
+  if (m.author === process.env.BOLAO_OWNER && m.body.startsWith('!bolao')) {
+    const command = getCommand(m.body);
+    if (command && command.startsWith('config')) {
       const chat = await m.getChat();
-      const requiredTeam = m.body.slice(13).trim();
-      if (teams.boloes && teams.boloes.some((team) => team.name === requiredTeam)) {
-        return client.sendMessage(m.from, `Já existe um bolão ativo de ${requiredTeam}.\n\nPara cancelar, escreva */bolao cancelar ${requiredTeam}*.`)
+      const requiredTeam = command.substring(6).trimStart();
+      const checkBolaoAtivo = data.boloes.find((bolao) => bolao.name === requiredTeam);
+      if (checkBolaoAtivo) {
+        if (checkBolaoAtivo.status === 'ativo') return client.sendMessage(m.from, `Já existe um bolão ativo de ${requiredTeam}.\n\nPara cancelar, escreva *!bolao cancelar ${requiredTeam}*.`)
+        return client.sendMessage(m.from, 'Reiniciando bolão')
       }
-      let searchTeam = teams.brasil.find((team) => team.name === requiredTeam);
+      let searchTeam = data.brasil.find((team) => team.name === requiredTeam);
       if (searchTeam) {
         const timeoutInicio = setTimeout(() => {
           start({ team: searchTeam, page: 0, m: m, group: chat });
           searchTeam = null;
         }, 3000);
         await chat.sendStateTyping();
-        return client.sendMessage(m.from, `Iniciando bolão do *${searchTeam}*!`);
+        return client.sendMessage(m.from, `Iniciando bolão do *${searchTeam.name}*!`);
       }
-      return client.sendMessage(m.from, 'Nenhum time cadastrado.')
+      return client.sendMessage(m.from, prompts.bolao.no_team)
     }
-    if (m.body.startsWith('!bolao cancelar')) {
-      const requiredTeam = m.body.slice(15).trim();
-      return;
+    if (command && command.startsWith('cancelar')) {
+      const bolaoIdToCancel = command.slice(8).trim();
+      if (bolaoIdToCancel) {
+        const bolaoFound = data.boloes.findIndex((bolao) => bolao.name === bolaoIdToCancel || bolao.id === bolaoIdToCancel);
+        if (bolaoFound >= 0) {
+          data.boloes[bolaoFound] = ({ ...data.boloes[bolaoFound], status: 'inativo' })
+          writeData(data);
+          return client.sendMessage(m.from, prompts.admin.cancelled);
+        };
+        return client.sendMessage(m.from, prompts.admin.verifyIdOrName);
+      };
     }
-    // switch (m.body) {
-    //   case '!ping':
-    //     pong();
-    //   case '!bolao':
-    //     return client.sendMessage(m.from, 'Iniciando bolão');
-    //   case '/bolao pause':
-    //     return client.sendMessage(m.from, 'Pausando bolão');
-    //   case '/bolao continue':
-    //     return client.sendMessage(m.from, 'Continuando bolão');
-    //   default:
-    //     return;
-    // }
+    let specify_response = prompts.admin.not_specified_bolao;
+    data.boloes.map((bolao) => {
+      if (bolao.status === 'ativo') specify_response += `\n▪️ ${bolao.name}`;
+    })
+    return client.sendMessage(m.from, specify_response);
   }
   return;
 });
