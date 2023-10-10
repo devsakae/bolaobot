@@ -25,10 +25,10 @@ function ping() {
 }
 
 async function start(info) {
-  (Number(info.page) < 1) && teams.boloes.push({ ...info.team, active: true });
+  (Number(info.page) < 1) && teams.boloes.push({ ...info.team, active: true, group: info.group });
   try {
     const dataFromApi = await fetchData(rapidapiurl + '/team/' + info.team.id + '/matches/next/' + info.page);
-    teams[info.team.name] = dataFromApi.events
+    teams[info.team.name] = dataFromApi.events;
     writeTeams(teams);
     while (dataFromApi.hasNextPage) {
       start({ ...info, page: info.page++ })
