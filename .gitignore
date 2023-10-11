@@ -5,3 +5,4 @@ node_modules/
 *.json
 !*data/example.json
 !*data/prompts.json
+!*data/data.initial.json

@@ -4,8 +4,7 @@
   "description": "Bot de WhatsApp que gerencia sistema de bolão (apostas/fantasy game) de futebol",
   "main": "index.js",
   "scripts": {
-    "config": "cp ./data/example.json ./data/data.json && echo 'Você limpou as configurações com sucesso. Inicie o bot com /npm start'",
-    "start": "node --env-file=.env index.js",
+    "start": "./install.sh",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

@@ -1,0 +1,46 @@
+{
+    "activeround": 1000001,
+    "teams": [
+        {
+            "id": 1984,
+            "name": "Criciúma",
+            "slug": "criciuma"
+        },
+        {
+            "id": 21845,
+            "name": "Chapecoense",
+            "slug": "chapecoense"
+        }
+    ],
+    "boloes": {
+        "criciuma": {
+            "2023": [
+                {
+                    "id": 1000001,
+                    "homeTeam": "Criciúma",
+                    "awayTeam": "Chapecoense",
+                    "startTimestamp": 14234234243
+                }
+            ],
+            "2022": {
+
+            }
+        },
+        "chapecoense": {}
+    },
+    "jogadores": {
+        "criciuma": [
+            {
+                "id": "5548991371440@c.us",
+                "name": "Rodrigo Sakae",
+                "pontos": 9
+            },
+            {
+                "id": "5548991371440@c.us",
+                "name": "Outro Sakae",
+                "pontos": 2
+            }
+        ],
+        "chapecoense": []
+    }
+}

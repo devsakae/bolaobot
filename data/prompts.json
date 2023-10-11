@@ -1,6 +1,6 @@
 {
   "admin": {
-    "welcome": "Bem vindo ao BolãoBot! Aguarde, carregando a conexão com o WhatsApp..",
+    "welcome": "Conectando com o WhatsApp, aguarde...",
     "no_owner": "ERRO: Você precisa configurar um administrador antes de iniciar o bot. Leia as instruções em https://bolao.devsakae.tech",
     "cancelled": "Bolão cancelado, mas dados salvos.",
     "verifyIdOrName": "Verifique o ID ou nome do bolão que você está querendo cancelar",
@@ -8,6 +8,7 @@
   },
   "bolao": {
     "no_team": "Nenhum time cadastrado",
+    "no_matches": "Nenhuma partida encontrada! Verifique com o administrador.",
     "start_header": "🚨🚨 Bolão aberto para"
   }
 }

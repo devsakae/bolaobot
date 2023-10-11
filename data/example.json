@@ -1,13 +1,19 @@
 {
-    "boloes": [],
-    "brasil": [
+    "listening": [],
+    "conf": [
         {
             "id": 1984,
-            "name": "Criciúma"
+            "name": "Criciúma",
+            "slug": "criciuma",
+            "status": "inativo",
+            "torneios": []
         },
         {
             "id": 21845,
-            "name": "Chapecoense"
+            "name": "Chapecoense",
+            "slug": "chapecoense",
+            "status": "inativo",
+            "torneios": []
         }
     ]
 }

@@ -27,6 +27,8 @@ BolãoBot é um chatbot de WhatsApp (whatsapp.com) que funciona 24 horas por dia
 
 ### Uso na versão gratuita
 
+Instale com npm run config
+
 Após a instalação completa no servidor, você deverá escrever no canal que deseja ativar o bolão:
 
     !bolao config <nome do time>
