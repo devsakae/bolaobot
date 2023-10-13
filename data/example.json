@@ -1,19 +1,15 @@
 {
-    "listening": [],
-    "conf": [
+    "activeRound": null,
+    "teams": [
         {
             "id": 1984,
             "name": "Criciúma",
-            "slug": "criciuma",
-            "status": "inativo",
-            "torneios": []
+            "slug": "criciuma"
         },
         {
             "id": 21845,
             "name": "Chapecoense",
-            "slug": "chapecoense",
-            "status": "inativo",
-            "torneios": []
+            "slug": "chapecoense"
         }
     ]
 }

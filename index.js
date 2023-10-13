@@ -1,59 +1,87 @@
 const { client } = require('./src/wpconnect');
 const { start, abreRodada } = require('./src/admin');
 const { getCommand } = require('./utils/functions');
-// const data = require('./data/data.json');
-const data = require('./data/data.initial.json');
+const data = require('./data/data.json');
 const prompts = require('./data/prompts.json');
-const { writeData } = require('./utils/fileHandler');
-const { habilitaPalpite } = require('./src/user');
+const { habilitaPalpite, listaPalpites } = require('./src/user');
+const carenciaFlooderList = 5
+const carenciaYellowCard = 30
+let flooderList = [];
+let yellowCards = [];
 
 (async () => {
   process.env.BOLAO_OWNER ? console.log('\n✔ Telefone do administrador:', process.env.BOLAO_OWNER.slice(2, -5), '\n') : console.error(prompts.admin.no_owner);
-  console.log('\nTimes liberados para bolão:\n')
-  data.teams.map((team) => console.log('\n- ', team.name))
-  console.log(prompts.admin.welcome);
+  console.log('Times liberados para disputa do bolão:')
+  data.teams.forEach((team) => console.log('-', team.name))
+  console.log('\n' + prompts.admin.welcome);
 })();
 
 client.on('message', async (m) => {
-  if (m.hasQuotedMsg && data.listening.length > 0) {
+  if (yellowCards.includes(m.author)) return;
+  if (flooderList.includes(m.author)) {
+    m.react('🟨');
+    yellowCards.push(m.author);
+    setTimeout(() => {
+      const ycidx = yellowCards.findIndex((y) => y === m.author);
+      yellowCards.splice(ycidx, 1);
+    }, carenciaYellowCard * 60 * 1000)
+    return m.reply('DE NOVO?! Cartão amarelo pra você! 30 minutos sem poder falar comigo');
+  };
+  if (m.hasQuotedMsg && data.activeRound) {
     const isTopic = await m.getQuotedMessage();
-    if (isTopic && isTopic.fromMe && isTopic.includes('Bolão aberto')) {
+    const matchingRegex = isTopic.body.match(/partida:\s\d+/);
+    if (isTopic && isTopic.fromMe && matchingRegex) {
+      if (data.activeRound.palpiteiros.some((p) => p === m.author)) {
+        flooderList.push(m.author);
+        const antiMala = setTimeout(() => {
+          const advertido = flooderList.findIndex((f) => f === m.author);
+          flooderList.splice(advertido, 1);
+        }, carenciaFlooderList * 60 * 1000);
+        return m.reply('Palpitando de novo pô?');
+      }
       const sender = await m.getContact(m.from);
-      console.log('pushname', sender.pushname);
-      console.log('name', sender.name);
-      const matchId = isTopic.body.match(/partida:\d+/);
-      console.log(matchId);
-      habilitaPalpite({ m: m })
-      return m.react('✅');
+      const matchId = matchingRegex[0].split(':')[1].trim();
+      if (data.activeRound.matchId === Number(matchId)) {
+        habilitaPalpite({ m: m, user: sender.pushname || sender.name, matchId: matchId })
+        return m.react('✅');
+      }
+      m.reply('Essa rodada não está ativa!');
+      flooderList.push(m.author);
+      const antiMala = setTimeout(() => {
+        const advertido = flooderList.findIndex((f) => f === m.author);
+        flooderList.splice(advertido, 1);
+      }, carenciaFlooderList * 60 * 1000);
     }
     return;
   }
-
+  if (m.body.startsWith('!palpites') && data.activeRound && data.activeRound.listening) {
+    if (flooderList.includes(m.author)) {
+      m.react('🟨');
+      return m.reply('Não foi você que acabou de pedir a lista de palpites? Toma um cartão amarelo pra você então!')
+    }
+    const palpiteList = listaPalpites();
+    flooderList.push(m.author);
+    const antiMala = setTimeout(() => {
+      const advertido = flooderList.findIndex((f) => f === m.author);
+      flooderList.splice(advertido, 1);
+    }, carenciaFlooderList * 60 * 1000);
+    return client.sendMessage(m.from, palpiteList);
+  };
   if (m.author === process.env.BOLAO_OWNER && m.body.startsWith('!bolao')) {
     const command = getCommand(m.body);
+    const grupo = m.from.split('@')[0];
     if (command && command.startsWith('config')) {
-      const chat = await m.getChat();
       const searchedTeam = command.substring(6).trimStart()
-      const teamIdx = data.conf.findIndex((team) => team.name === searchedTeam);
-      if (Number(teamIdx) < 0) return client.sendMessage(m.from, prompts.bolao.no_team);
-      if (data.conf[teamIdx].status === 'ativo') {
-        return client.sendMessage(m.from, `Já existe um bolão ativo de ${data.conf[teamIdx].name}.\n\nPara cancelar, escreva *!bolao cancelar ${data.conf[teamIdx].name}*.`)
-      }
-      const timeoutInicio = setTimeout(() => start({ teamIdx: teamIdx, team: data.conf[teamIdx], page: 0, m: m, group: chat }), 5000);
-      return await chat.sendStateTyping();;
+      const teamIdx = data.teams.findIndex((team) => team.name === searchedTeam || team.slug === searchedTeam);
+      if (Number(teamIdx) < 0) return m.reply(prompts.bolao.no_team);
+      if (data[grupo] && data[grupo][data.teams[teamIdx].slug]) return m.reply('Bolão já está ativo!')
+      start({ to: m.from, teamIdx: teamIdx, page: 0 });
+      setTimeout(() => abreRodada({ to: m.from, teamIdx: teamIdx }), 5000)
+      const chat = await m.getChat();
+      return await chat.sendStateTyping();
     };
-    if (command && command.startsWith('cancelar')) {
-      const bolaoToCancel = command.slice(8).trim();
-      if (bolaoToCancel) {
-        const teamIdx = data.conf.findIndex((team) => team.name === bolaoToCancel || team.slug === bolaoToCancel);
-        data.conf[teamIdx].status = "inativo";
-        writeData(data);
-        return client.sendMessage(m.from, prompts.admin.cancelled);
-      };
-    };
-    if (data.listening.length === 1) return abreRodada({ m: m, id: data.listening[0] });
-    if (data.listening.length > 1) return m.reply('Mais de um bolão aberto. Suporte em breve.');
-    return m.reply('Esqueceu de alguma coisa?');
+    if (data.activeRound) return abreRodada({ to: m.from, teamIdx: data.teams.findIndex((team) => team.slug === data.activeRound.team) })
+    return m.reply('Tô funcionando, só escreve aí o que tu precisa (ou quer ler as regras de novo?)')
   }
   return;
 });

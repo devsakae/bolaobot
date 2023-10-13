@@ -6,23 +6,29 @@ function getCommand(raw) {
 }
 
 function forMatch(match) {
-  const data = new Date(match.startTimestamp * 1000);
-  return `🚨 Bolão aberto 🚨
-  
-Registre seu palpite para *${match.homeTeam.name}* x *${match.awayTeam.name}* que vai acontecer em ${data.toLocaleString('pt-br')}
+  const data = new Date(match.hora);
+  return `🚨🚨 BOLÃO ABERTO! 🚨🚨
 
-❓ *COMO JOGAR*: Responda essa mensagem com apenas seu palpite, no formato *MANDANTE SCORE x SCORE VISITANTE* (ex.: ${match.homeTeam.name} 1 x 2 ${match.awayTeam.name}).
+⚽️ ${match.homeTeam} x ${match.awayTeam} 🏆 ${match.torneio} 🗓 ${data.toLocaleString('pt-br')}
 
-🛑 Atenção: Este é um sistema de teste, portanto pode haver alguns BUGs. Caso isso aconteça, favor reportar ao dono do Bot.
+*COMO JOGAR*: Responda essa mensagem com apenas seu palpite, no formato:
 
-ℹ️ *REGRAS*: Palpites válidos somente se enviados em até *30 minutos* antes da partida.
+👉👉 *<mandante> <placar> x <placar> <visitante>* 👈👈
+ex.: ${match.homeTeam} ${Math.floor(Math.random() * 5)} x ${Math.floor(Math.random() * 5)} ${match.awayTeam}
 
-  ✅ Placar em cheio: *3 pontos*
-  ✅ Vitória, empate ou derrota: *1 ponto*
-  ✅ Acertar o placar de um dos times: *Ponto extra!*
+Palpites válidos somente se enviados em até *30 minutos* antes da partida.
+
+*REGRAS*: Esse jogo é pra brincar, não é pra avacalhar!
+
+✅ Acertou o placar em cheio: *3 pontos*
+✅ Acertar vitória, empate ou derrota e o placar de um dos times: *2 pontos*
+✅ Acertar vitória, empate ou derrota: *1 ponto*
+🚫 Repetir palpite
+🚫 Flood (leva cartão amarelo)
 
 Boa sorte!
-Sistema de bolão hiper mega 🔝 desenvolvido por devsakae.tech
+
+Sistema de bolão ©️ devsakae.tech
 Id da partida: ${match.id}`;
 }
 
