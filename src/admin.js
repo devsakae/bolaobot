@@ -63,24 +63,27 @@ async function start(info) {
   }
 }
 
+function pegaProximaRodada() {
+  const today = new Date();
+  const grupo = data.activeRound.grupo;
+  const slug = data.activeRound.team;
+  const ano = today.getFullYear();
+  for (let key in data[grupo][slug][ano]) {
+    if (data[grupo][slug][ano][key].hora > horaNow) return data[grupo][slug][ano][key];
+  };
+  return { error: true };
+}
+
 function abreRodada(info) {
-  const grupo = info.to.split('@')[0];
-  const team = data.teams[info.teamIdx];
+  const grupo = data.activeRound.grupo + '@g.us';
   const today = new Date();
   const horaNow = today.getTime();
-  let nextMatch;
-  for (let key in data[grupo][team.slug][today.getFullYear()]) {
-    if (data[grupo][team.slug][today.getFullYear()][key].hora > horaNow) {
-      nextMatch = data[grupo][team.slug][today.getFullYear()][key];
-      break;
-    }
-  };
-  if (!nextMatch) return client.sendMessage(info.to, 'Nenhuma rodada prevista! Abra um novo bolão');
+  const nextMatch = pegaProximaRodada();
+  if (nextMatch.error) return client.sendMessage(grupo, 'Nenhuma rodada prevista! Abra um novo bolão');
   data.activeRound = ({
+    ...data.activeRound,
     listening: true,
     matchId: nextMatch.id,
-    grupo: grupo,
-    team: team.slug,
     palpiteiros: [],
   }),
   writeData(data);
@@ -90,7 +93,7 @@ function abreRodada(info) {
   () => clearTimeout(encerramentoProgramado);
   const encerramentoProgramado = setTimeout(() => encerraPalpite(), timeoutInMs)
   const texto = forMatch(nextMatch);
-  return client.sendMessage(info.to, texto);
+  return client.sendMessage(grupo, texto);
 }
 
 function encerraPalpite() {
@@ -128,7 +131,9 @@ async function fechaRodada() {
     const medal = (idx === 0) ? '🥇' : (idx === 1) ? '🥈' : (idx === 2) ? '🥉' : '';
     response += `\n${medal} ${pos.autor} fez ${pos.pontos} ponto(s) com o palpite ${pos.placar}`;
   });
-  const proximaRodada = setTimeout(() => abreRodada({ to: data.activeRound.grupo + '@g.us', teamIdx: data.teams.findIndex((team) => team.slug === data.activeRound.team) }), 12 * 3600000) // Abre nova rodada em 12 horas após fechar a última rodada
+  const nextMatch = pegaProximaRodada();
+  if (nextMatch.error) return client.sendMessage(contatoGrupo, 'Fim do bolão! <resultado final>');
+  const proximaRodada = setTimeout(() => abreRodada({ to: data.activeRound.grupo + '@g.us', teamIdx: teamIdx }), 12 * 3600000) // Abre nova rodada em 12 horas após fechar a última rodada
   data.activeRound = ({
     ...data.activeRound,
     matchId: null,

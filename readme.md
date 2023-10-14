@@ -1,5 +1,12 @@
 # BolãoBot
 
+### Requisitos de instalação
+
+- [ ] Criar o arquivo .env
+- [ ] Node >= 20.6.0
+- [ ] Ajuste wwebjs/src/Client.js (175)
+```const INTRO_IMG_SELECTOR = 'div[role=\'textbox\']';```
+
 ### O que é?
 BolãoBot é um chatbot de WhatsApp (whatsapp.com) que funciona 24 horas por dia e organiza o bolão do seu grupo!
 
