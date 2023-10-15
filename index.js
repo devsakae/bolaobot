@@ -3,7 +3,7 @@ const { start, abreRodada } = require('./src/admin');
 const { getCommand } = require('./utils/functions');
 const data = require('./data/data.json');
 const prompts = require('./data/prompts.json');
-const { habilitaPalpite, listaPalpites } = require('./src/user');
+const { habilitaPalpite, listaPalpites, getRanking } = require('./src/user');
 const carenciaFlooderList = 5
 const carenciaYellowCard = 30
 let flooderList = [];
@@ -43,7 +43,7 @@ client.on('message', async (m) => {
       const matchId = matchingRegex[0].split(':')[1].trim();
       if (data.activeRound.matchId === Number(matchId)) {
         habilitaPalpite({ m: m, user: sender.pushname || sender.name, matchId: matchId })
-        return m.react('✅');
+        return m.react('🎟');
       }
       m.reply('Essa rodada não está ativa!');
       flooderList.push(m.author);
@@ -70,18 +70,22 @@ client.on('message', async (m) => {
   if (m.author === process.env.BOLAO_OWNER && m.body.startsWith('!bolao')) {
     const command = getCommand(m.body);
     const grupo = m.from.split('@')[0];
-    if (command && command.startsWith('config')) {
-      const searchedTeam = command.substring(6).trimStart()
+    if (command && command.startsWith('start')) {
+      const searchedTeam = command.substring(5).trimStart()
       const teamIdx = data.teams.findIndex((team) => team.name === searchedTeam || team.slug === searchedTeam);
       if (Number(teamIdx) < 0) return m.reply(prompts.bolao.no_team);
-      if (data[grupo] && data[grupo][data.teams[teamIdx].slug]) return m.reply('Bolão já está ativo!')
+      if (data[grupo] && data[grupo][data.teams[teamIdx].slug]) return m.reply('Bolão já está ativo!');
       start({ to: m.from, teamIdx: teamIdx, page: 0 });
-      setTimeout(() => abreRodada({ to: m.from, teamIdx: teamIdx }), 5000)
       const chat = await m.getChat();
-      return await chat.sendStateTyping();
+      setTimeout(() => abreRodada(), 5000)
+      await chat.sendStateTyping();
+      return;
     };
-    if (data.activeRound) return abreRodada({ to: m.from, teamIdx: data.teams.findIndex((team) => team.slug === data.activeRound.team) })
-    return m.reply('Tô funcionando, só escreve aí o que tu precisa (ou quer ler as regras de novo?)')
+    if (command && command.startsWith('ranking') && data.activeRound) {
+      const ranking = getRanking();
+      client.sendMessage(m.from, ranking);
+    }
+    return m.reply('Oi, tô vivo')
   }
   return;
 });

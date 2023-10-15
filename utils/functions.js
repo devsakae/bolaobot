@@ -16,7 +16,7 @@ function forMatch(match) {
 👉👉 *<mandante> <placar> x <placar> <visitante>* 👈👈
 ex.: ${match.homeTeam} ${Math.floor(Math.random() * 5)} x ${Math.floor(Math.random() * 5)} ${match.awayTeam}
 
-Palpites válidos somente se enviados em até *30 minutos* antes da partida.
+Palpites válidos somente se enviados em até *10 minutos* antes da partida e o Bot tiver reagido à mensagem com o emoji 🎟. Se não tiver, o palpite não é válido!
 
 *REGRAS*: Esse jogo é pra brincar, não é pra avacalhar!
 
@@ -25,6 +25,7 @@ Palpites válidos somente se enviados em até *30 minutos* antes da partida.
 ✅ Acertar vitória, empate ou derrota: *1 ponto*
 🚫 Repetir palpite
 🚫 Flood (leva cartão amarelo)
+⚖️ Desempate: Palpite mais antigo leva
 
 Boa sorte!
 

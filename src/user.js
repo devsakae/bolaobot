@@ -26,9 +26,14 @@ function listaPalpites() {
   let resposta = `📢 Lista de palpites registrados para ${match.homeTeam} x ${match.awayTeam} - ${match.rodada}ª rodada ${match.torneio}\n`
   match.palpites.forEach((palpite) => resposta += `\n▪ ${palpite.homeScore} x ${palpite.awayScore} (${palpite.userName})`);
   return resposta;
+};
+
+function getRanking() {
+  
 }
 
 module.exports = { 
   habilitaPalpite,
   listaPalpites,
+  getRanking,
 }
