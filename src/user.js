@@ -28,7 +28,14 @@ function listaPalpites() {
   return resposta;
 };
 
-function getRanking() {
+function getRanking(round) {
+  if (round) {
+    const today = new Date();
+    const historico = Array.from(data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()])
+    const gotcha = historico.find((match) => match.rodada === Number(round));
+    if (gotcha) return gotcha.ranking;
+    return 'Ranking não existe';
+  };
   data.ranking.sort((a, b) => a.pontos < b.pontos ? 1 : (a.pontos > b.pontos) ? -1 : 0);
   writeData(data);
   let response = `🏆 RANKING DO BOLÃO 🏆 \n`;

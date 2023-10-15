@@ -82,7 +82,7 @@ client.on('message', async (m) => {
       return;
     };
     if (command && command.startsWith('ranking') && data.activeRound) {
-      const ranking = getRanking();
+      const ranking = (command.length > 7) ? getRanking(command.substring(7).trimStart()) : getRanking();
       client.sendMessage(m.from, ranking);
     }
     return m.reply('Oi, tô vivo')
