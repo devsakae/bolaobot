@@ -1,10 +1,8 @@
 const data = require('../data/data.json');
 const { writeData } = require('../utils/fileHandler');
-// const { fetchData } = require('./admin');
-const mockStats = require('../data/mockStats.json');
+const { fetchData } = require('./admin');
 
 async function habilitaPalpite(info) {
-  // info = { m: Message, sender: Sender, matchId: 12345 }
   const grupo = info.m.from.split('@')[0];
   const today = new Date();
   const regex = /\d+\s*[xX]\s*\d+/;
