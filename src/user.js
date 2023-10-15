@@ -29,7 +29,16 @@ function listaPalpites() {
 };
 
 function getRanking() {
-  
+  data.ranking.sort((a, b) => a.pontos < b.pontos ? 1 : (a.pontos > b.pontos) ? -1 : 0);
+  writeData(data);
+  let response = `🏆 RANKING DO BOLÃO 🏆 \n`;
+  data.ranking.forEach((pos, idx) => {
+    const medal = (idx === 0) ? '🥇 ' : (idx === 1) ? '🥈 ' : (idx === 2) ? '🥉 ' : '';
+    (pos.pontos > 0)
+      ? response += `\n${medal}${pos.autor} [${pos.pontos} ponto(s)]`
+      : response += `\nEspectador: ${pos.autor}`
+  });
+  return response;
 }
 
 module.exports = { 

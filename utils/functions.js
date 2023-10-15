@@ -18,7 +18,7 @@ ex.: ${match.homeTeam} ${Math.floor(Math.random() * 5)} x ${Math.floor(Math.rand
 
 Palpites válidos somente se enviados em até *10 minutos* antes da partida e o Bot tiver reagido à mensagem com o emoji 🎟. Se não tiver, o palpite não é válido!
 
-*REGRAS*: Esse jogo é pra brincar, não é pra avacalhar!
+*REGRAS*: As rodadas são abertas 36 horas antes do horário da partida.
 
 ✅ Acertou o placar em cheio: *3 pontos*
 ✅ Acertar vitória, empate ou derrota e o placar de um dos times: *2 pontos*

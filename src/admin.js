@@ -94,8 +94,8 @@ function abreRodada() {
   const limiteConvertidoEmMs = limiteDeTempoParaPalpitesEmMinutos * 60000;
   const timeoutInMs = nextMatch.hora - horaNow - limiteConvertidoEmMs;
   () => clearTimeout(encerramentoProgramado);
-  const encerramentoProgramado = setTimeout(() => encerraPalpite(), 20000) // TEST
-  // const encerramentoProgramado = setTimeout(() => encerraPalpite(), timeoutInMs)
+  // const encerramentoProgramado = setTimeout(() => encerraPalpite(), 30000) // TEST
+  const encerramentoProgramado = setTimeout(() => encerraPalpite(), timeoutInMs)
   const texto = forMatch(nextMatch);
   return client.sendMessage(grupo, texto);
 }
@@ -110,53 +110,52 @@ function encerraPalpite() {
   client.sendMessage(data.activeRound.grupo + '@g.us', encerramento + listaDePalpites);
   const hours = 3;  // Prazo (em horas) para buscar o resultado da partida após o encerramento dos palpites
   const hoursInMs = hours * 3600000;
-  const programaFechamento = setTimeout(() => fechaRodada(), 5000) // TEST
-  // const programaFechamento = setTimeout(() => fechaRodada(), hoursInMs)
+  // const programaFechamento = setTimeout(() => fechaRodada(), 5000) // TEST
+  const programaFechamento = setTimeout(() => fechaRodada(), hoursInMs)
 }
 
 async function fechaRodada() {
+  let response;
   const today = new Date();
   const contatoGrupo = data.activeRound.grupo + '@g.us';
-  const matchInfo = mockMatch; // TEST
-  // const matchInfo = await fetchData(rapidapiurl + '/match/' + data.activeRound.matchId);
+  // const matchInfo = mockMatch; // TEST
+  const matchInfo = await fetchData(rapidapiurl + '/match/' + data.activeRound.matchId);
   const homeScore = matchInfo.event.homeScore.current;
   const awayScore = matchInfo.event.awayScore.current;
   const resultado = Number(matchInfo.event.homeScore.current) > Number(matchInfo.event.awayScore.current) ? 'V' : Number(matchInfo.event.homeScore.current) < Number(matchInfo.event.awayScore.current) ? 'D' : 'E';
   const rankingDaRodada = data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId].palpites.map((p) => {
-    // let playerInfo = { autor: p.userName, pontos: 0, placar: p.homeScore + ' x ' + p.awayScore }
-    // if (p.homeScore === homeScore && p.awayScore === awayScore) {
-    //   playerInfo.pontos = 3;
-    //   return playerInfo;
-    // }
-    // if (p.resultado === resultado) playerInfo.pontos = 1;
-    // if (p.resultado === resultado && (p.homeScore === homeScore || p.awayScore === awayScore)) playerInfo.pontos += 1;
-    // return playerInfo;
-    let playerInfo = { matchId: matchInfo.event.id, userId: p.userId, autor: p.userName, pontos: 0, placar: { homeScore: p.homeScore, awayScore: p.awayScore } }
-    if (p.resultado === resultado) playerInfo.pontos = 1;
-    if (p.resultado === resultado && (p.homeScore === homeScore || p.awayScore === awayScore)) playerInfo.pontos = 2;
-    if (p.homeScore === homeScore && p.awayScore === awayScore) playerInfo.pontos = 3;
-    data.historico.push(playerInfo);
-    return playerInfo;
+    let pontos = 0;
+    if (p.resultado === resultado) pontos = 1;
+    if (p.resultado === resultado && (p.homeScore === homeScore || p.awayScore === awayScore)) pontos = 2;
+    if (p.homeScore === homeScore && p.awayScore === awayScore) pontos = 3;
+    const playerIdx = data.ranking.findIndex((player) => player.id === p.userId);
+    (playerIdx < 0)
+      ? data.ranking.push({ id: p.userId, usuario: p.userName, pontos: pontos })
+      : data.ranking[playerIdx].pontos += pontos;
+    return ({ ...p, pontos: pontos });
   }).sort((a, b) => a.pontos < b.pontos ? 1 : (a.pontos > b.pontos) ? -1 : 0);
-  writeData(data);
-  if (rankingDaRodada[0].pontos === 0) return client.sendMessage(contatoGrupo, 'Resultado do bolão: Ninguém pontuou na última rodada!');
-  let response = `🏁🏁 Resultado do bolão da ${matchInfo.event.roundInfo.round}ª rodada 🏁🏁\n`;
+  if (rankingDaRodada[0].pontos === 0) {
+    response = 'Ninguém pontuou na última rodada!';
+    data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId].ranking = response;
+    data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId].palpites = rankingDaRodada;
+    writeData(data);
+    return client.sendMessage(contatoGrupo, response);
+  }
+  response = `🏁🏁 Resultado do bolão da ${matchInfo.event.roundInfo.round}ª rodada 🏁🏁\n`;
   response += `\nPartida: ${matchInfo.event.homeRedCards ? '🟥'.repeat(matchInfo.event.homeRedCards) : ''}${matchInfo.event.homeTeam.name} ${homeScore} x ${awayScore} ${matchInfo.event.awayTeam.name}${matchInfo.event.awayRedCards ? '🟥'.repeat(matchInfo.event.awayRedCards) : ''}\n`;
   rankingDaRodada.forEach((pos, idx) => {
     const medal = (idx === 0) ? '🥇' : (idx === 1) ? '🥈' : (idx === 2) ? '🥉' : '';
     (pos.pontos > 0)
-      ? response += `\n${medal} ${pos.autor} fez ${pos.pontos} ponto(s) com o palpite ${pos.placar.homeScore} x ${pos.placar.awayScore}`
-      : response += `\n${pos.autor} zerou com o palpite ${pos.placar.homeScore} x ${pos.placar.awayScore}`
+      ? response += `\n${medal} ${pos.userName} fez ${pos.pontos} ponto(s) com o palpite ${pos.homeScore} x ${pos.awayScore}`
+      : response += `\n${pos.autor} zerou com o palpite ${pos.placar.homeScore} x ${pos.awayScore}`
   });
   const nextMatch = pegaProximaRodada();
   if (nextMatch.error) return client.sendMessage(contatoGrupo, 'Bolão finalizado! Sem mais rodadas para disputa');
-  const calculatedTimeout = (nextMatch.hora - 115200000) - today.getTime();
+  const calculatedTimeout = (nextMatch.hora - 115200000) - today.getTime(); // Abre nova rodada 36 horas antes do jogo
   const proximaRodada = setTimeout(() => abreRodada(), calculatedTimeout);
-  data.activeRound = ({
-    ...data.activeRound,
-    matchId: null,
-    palpiteiros: []
-  })
+  data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId].ranking = response;
+  data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId].palpites = rankingDaRodada;
+  data.activeRound = ({ ...data.activeRound, matchId: null, palpiteiros: [] });
   writeData(data);
   return client.sendMessage(contatoGrupo, response);
 }
