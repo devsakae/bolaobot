@@ -163,6 +163,7 @@ async function fechaRodada() {
 module.exports = {
   ping,
   start,
+  fetchData,
   abreRodada,
   fechaRodada,
 }

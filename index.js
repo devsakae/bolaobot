@@ -3,7 +3,7 @@ const { start, abreRodada } = require('./src/admin');
 const { getCommand } = require('./utils/functions');
 const data = require('./data/data.json');
 const prompts = require('./data/prompts.json');
-const { habilitaPalpite, listaPalpites, getRanking } = require('./src/user');
+const { habilitaPalpite, listaPalpites, getRanking, getStats } = require('./src/user');
 const carenciaFlooderList = 5
 const carenciaYellowCard = 30
 let flooderList = [];
@@ -57,7 +57,7 @@ client.on('message', async (m) => {
   if (m.body.startsWith('!palpites') && data.activeRound && data.activeRound.listening) {
     if (flooderList.includes(m.author)) {
       m.react('🟨');
-      return m.reply('Não foi você que acabou de pedir a lista de palpites? Toma um cartão amarelo pra você então!')
+      return m.reply('Não foi você que acabou de pedir a lista de palpites? Toma um cartão amarelo pra você!')
     }
     const palpiteList = listaPalpites();
     flooderList.push(m.author);
@@ -67,6 +67,13 @@ client.on('message', async (m) => {
     }, carenciaFlooderList * 60 * 1000);
     return client.sendMessage(m.from, palpiteList);
   };
+  if (m.author === process.env.BOLAO_OWNER && m.body.startsWith('!stats')) {
+    const command = getCommand(m.body);
+    if (!command) return m.reply('Especifique o ID da partida');
+    const statsPack = await getStats(command);
+    if (statsPack.error) return m.reply('Erro buscando estatísticas da partida');
+    return client.sendMessage(m.from, statsPack);
+  };
   if (m.author === process.env.BOLAO_OWNER && m.body.startsWith('!bolao')) {
     const command = getCommand(m.body);
     const grupo = m.from.split('@')[0];
@@ -75,8 +82,8 @@ client.on('message', async (m) => {
       const teamIdx = data.teams.findIndex((team) => team.name === searchedTeam || team.slug === searchedTeam);
       if (Number(teamIdx) < 0) return m.reply(prompts.bolao.no_team);
       if (data[grupo] && data[grupo][data.teams[teamIdx].slug]) return m.reply('Bolão já está ativo!');
-      start({ to: m.from, teamIdx: teamIdx, page: 0 });
       const chat = await m.getChat();
+      await start({ to: m.from, teamIdx: teamIdx, page: 0 });
       setTimeout(() => abreRodada(), 5000)
       await chat.sendStateTyping();
       return;

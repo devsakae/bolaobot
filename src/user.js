@@ -1,5 +1,7 @@
 const data = require('../data/data.json');
 const { writeData } = require('../utils/fileHandler');
+// const { fetchData } = require('./admin');
+const mockStats = require('../data/mockStats.json');
 
 async function habilitaPalpite(info) {
   // info = { m: Message, sender: Sender, matchId: 12345 }
@@ -40,16 +42,35 @@ function getRanking(round) {
   writeData(data);
   let response = `🏆 RANKING DO BOLÃO 🏆 \n`;
   data.ranking.forEach((pos, idx) => {
-    const medal = (idx === 0) ? '🥇 ' : (idx === 1) ? '🥈 ' : (idx === 2) ? '🥉 ' : '';
+    const medal = (idx === 0) ? '🥇 ' : (idx === 1) ? '🥈 ' : (idx === 2) ? '🥉 ' : `${idx + 1}º - `;
     (pos.pontos > 0)
       ? response += `\n${medal}${pos.autor} [${pos.pontos} ponto(s)]`
-      : response += `\nEspectador: ${pos.autor}`
+      : response += `\nEspectador: ${pos.autor} (não pontuou)`
   });
   return response;
+};
+
+async function getStats(matchId) {
+  try {
+    // const responseFromApi = mockStats; // TEST
+    const responseFromApi = await fetchData(process.env.BOLAO_RAPIDAPI_URL + '/match/' + matchId + '/statistics');
+    const matchStats = responseFromApi.statistics.find((item) => item.period === 'ALL');
+    let formatStats = `Estatísticas da partida ${matchId}\n\nFormato: <mandante> x <visitante>`;
+    matchStats.groups.forEach((stat) => {
+      formatStats += `\n\[${stat.groupName}]`;
+      stat.statisticsItems.forEach((s) => {
+        formatStats += `\n${s.name}: ${s.home} x ${s.away}`
+      });
+    });
+    return formatStats;
+  } catch (err) {
+    return ({ error: true });
+  }
 }
 
 module.exports = { 
   habilitaPalpite,
   listaPalpites,
   getRanking,
+  getStats,
 }
