@@ -1,6 +1,5 @@
 const prompts = require('../data/prompts.json');
 const data = require('../data/data.json');
-const mockMatch = require('../data/mockMatch.json');
 const { client } = require('./wpconnect');
 const axios = require('axios');
 const { writeData } = require('../utils/fileHandler');
