@@ -4,6 +4,11 @@
     "teams": [
         {
             "id": 1984,
+            "name": "Coritiba",
+            "slug": "coritiba"
+        },
+        {
+            "id": 1984,
             "name": "Criciúma",
             "slug": "criciuma"
         },

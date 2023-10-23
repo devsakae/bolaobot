@@ -54,7 +54,8 @@ async function start(info) {
     });
     data.activeRound = ({
       grupo: grupo,
-      team: team.slug
+      team: team.slug,
+      teamId: team.id
     });
     writeData(data);
     while (dataFromApi.hasNextPage) return start({ ...info, page: info.page + 1 });
@@ -107,7 +108,7 @@ function encerraPalpite() {
   const listaDePalpites = listaPalpites();
   if (data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId].palpites.length < 1) return client.sendMessage(data.activeRound.grupo + '@g.us', 'Nenhum palpite foi cadastrado!');
   client.sendMessage(data.activeRound.grupo + '@g.us', encerramento + listaDePalpites);
-  const hours = 3;  // Prazo (em horas) para buscar o resultado da partida após o encerramento dos palpites
+  const hours = 8;  // Prazo (em horas) para buscar o resultado da partida após o encerramento dos palpites
   const hoursInMs = hours * 3600000;
   // const programaFechamento = setTimeout(() => fechaRodada(), 5000) // TEST
   const programaFechamento = setTimeout(() => fechaRodada(), hoursInMs)
@@ -119,6 +120,7 @@ async function fechaRodada() {
   const contatoGrupo = data.activeRound.grupo + '@g.us';
   // const matchInfo = mockMatch; // TEST
   const matchInfo = await fetchData(rapidapiurl + '/match/' + data.activeRound.matchId);
+  // const matchHighlights = await fetchData(rapidapiurl + '/team/' + data.activeRound.teamId + '/media'); // Video highlights?
   const homeScore = matchInfo.event.homeScore.current;
   const awayScore = matchInfo.event.awayScore.current;
   const resultado = Number(matchInfo.event.homeScore.current) > Number(matchInfo.event.awayScore.current) ? 'V' : Number(matchInfo.event.homeScore.current) < Number(matchInfo.event.awayScore.current) ? 'D' : 'E';
@@ -143,10 +145,10 @@ async function fechaRodada() {
   response = `🏁🏁 Resultado do bolão da ${matchInfo.event.roundInfo.round}ª rodada 🏁🏁\n`;
   response += `\nPartida: ${matchInfo.event.homeRedCards ? '🟥'.repeat(matchInfo.event.homeRedCards) : ''}${matchInfo.event.homeTeam.name} ${homeScore} x ${awayScore} ${matchInfo.event.awayTeam.name}${matchInfo.event.awayRedCards ? '🟥'.repeat(matchInfo.event.awayRedCards) : ''}\n`;
   rankingDaRodada.forEach((pos, idx) => {
-    const medal = (idx === 0) ? '🥇' : (idx === 1) ? '🥈' : (idx === 2) ? '🥉' : '';
+    const medal = (idx === 0) ? '🥇 ' : (idx === 1) ? '🥈 ' : (idx === 2) ? '🥉 ' : '';
     (pos.pontos > 0)
-      ? response += `\n${medal} ${pos.userName} fez ${pos.pontos} ponto(s) com o palpite ${pos.homeScore} x ${pos.awayScore}`
-      : response += `\n${pos.autor} zerou com o palpite ${pos.placar.homeScore} x ${pos.awayScore}`
+      ? response += `\n${medal}${pos.userName} fez ${pos.pontos} ponto(s) com o palpite ${pos.homeScore} x ${pos.awayScore}`
+      : response += `\n${pos.userName} zerou com o palpite ${pos.homeScore} x ${pos.awayScore}`
   });
   const nextMatch = pegaProximaRodada();
   if (nextMatch.error) return client.sendMessage(contatoGrupo, 'Bolão finalizado! Sem mais rodadas para disputa');
@@ -165,4 +167,5 @@ module.exports = {
   fetchData,
   abreRodada,
   fechaRodada,
+  pegaProximaRodada,
 }

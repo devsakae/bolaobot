@@ -42,8 +42,8 @@ function getRanking(round) {
   data.ranking.forEach((pos, idx) => {
     const medal = (idx === 0) ? '🥇 ' : (idx === 1) ? '🥈 ' : (idx === 2) ? '🥉 ' : `${idx + 1}º - `;
     (pos.pontos > 0)
-      ? response += `\n${medal}${pos.autor} [${pos.pontos} ponto(s)]`
-      : response += `\nEspectador: ${pos.autor} (não pontuou)`
+      ? response += `\n${medal}${pos.userName} com ${pos.pontos} ponto(s)`
+      : response += `\nNão pontuou: ${pos.userName}`
   });
   return response;
 };
