@@ -19,22 +19,25 @@ Após a configuração inicial, o chatbot automaticamente irá abrir a rodada de
 
 ### Requisitos de instalação
 
-- [ ] Possuir credenciais de conta de API de futebol (uso pago, por request);
-- [ ] Configurar o arquivo .env;
-- [ ] Servidor node v20.6.0 ou superior;
-- [ ] Ajuste wwebjs/src/Client.js (175) conforme issue #2473 de Set/5;
+- [x] Possuir credenciais de conta de API de futebol (uso pago, por request);
+- [x] Configurar o arquivo .env;
+- [x] Servidor node v20.6.0 ou superior;
+- [x] Ajuste wwebjs/src/Client.js (175) conforme issue #2473 de Set/5;
 
 ### Instruções de uso:
 
 ##### Comandos exclusivos de administrador
 
->> Verifica se bot está online
+Verifica se bot está online
+
 ```!bolao```
 
->> Inicia um bolão novo
+Inicia um bolão novo
+
 ```!bolao start <time>```
 
->> Verifica palpites cadastrados
+Verifica palpites cadastrados
+
 ```!palpites```
 
 ##### Comandos inteligentes (resposta de acordo com função do usuário)
