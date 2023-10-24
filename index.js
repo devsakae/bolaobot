@@ -18,7 +18,7 @@ const { quotes } = require('./src/quotes');
   }
   process.env.BOLAO_OWNER
     ? console.log(
-        '\n✔ Telefone do administrador:',
+        '✔ Telefone do administrador:',
         process.env.BOLAO_OWNER.slice(2, -5),
         '\n',
       )
@@ -30,15 +30,15 @@ const { quotes } = require('./src/quotes');
 
 client.on('message', async (m) => {
   if (
-    m.from === '554896059196-1392584319@g.us' &&
-    (
+    // m.from === '554896059196-1392584319@g.us' &&
+    // (
       m.body.startsWith('!quote') ||
       m.body.startsWith('!addquote') ||
       m.body.startsWith('!jogounotigre') ||
       m.body.startsWith('!autor') ||
       m.body.startsWith('!data') ||
       m.body.startsWith('!delquote')
-    )
+    // )
   ) {
     await quotes(m);
   }

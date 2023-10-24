@@ -41,7 +41,6 @@ const bolao = async (m) => {
   };
   if (m.author === process.env.BOT_OWNER && m.body.startsWith('!bolao')) {
     console.log('Owner disse !bolao')
-    const chat = await m.getChat();
     const command = getCommand(m.body);
     const grupo = m.from.split('@')[0];
     if (command && command.startsWith('start')) {
@@ -51,7 +50,6 @@ const bolao = async (m) => {
       if (data[grupo] && data[grupo][data.teams[teamIdx].slug]) return m.reply('Bolão já está ativo!');
       await start({ to: m.from, teamIdx: teamIdx, page: 0 });
       setTimeout(() => abreRodada(), 5000)
-      await chat.sendStateTyping();
       return;
     };
     if (command && command.startsWith('calcula')) fechaRodada();

@@ -1,4 +1,5 @@
 const { db, tigrebot, client } = require('../connections');
+const { formatQuote, addStats, bestQuote } = require('./utils/functions');
 
 const quotes = async (m) => {
   if (m.body === '!quote') {
