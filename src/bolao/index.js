@@ -1,6 +1,6 @@
 const data = require('./data/data.json');
 const prompts = require('./data/prompts.json');
-const { client } = require('./wpconnect');
+const { client } = require('../connections');
 const { getCommand } = require('./utils/functions');
 const { start, abreRodada, fechaRodada, pegaProximaRodada, getStats } = require('./admin');
 const { habilitaPalpite, listaPalpites, getRanking } = require('./user');
@@ -25,13 +25,13 @@ const bolao = async (m) => {
     const palpiteList = listaPalpites();
     return client.sendMessage(m.from, palpiteList);
   };
-  if (m.author === process.env.BOLAO_OWNER && m.body.startsWith('!ranking') && data.activeRound) {
+  if (m.author === process.env.BOT_OWNER && m.body.startsWith('!ranking') && data.activeRound) {
     console.log('Owner disse !ranking')
     const command = getCommand(m.body);
     const ranking = command ? getRanking(command) : getRanking();
     client.sendMessage(m.from, ranking);
   }
-  if (m.author === process.env.BOLAO_OWNER && m.body.startsWith('!stats')) {
+  if (m.author === process.env.BOT_OWNER && m.body.startsWith('!stats')) {
     console.log('Owner disse !stats')
     const command = getCommand(m.body);
     if (!command) return m.reply('Especifique o ID da partida');
@@ -39,7 +39,7 @@ const bolao = async (m) => {
     if (statsPack.error) return m.reply('Erro buscando estatísticas da partida');
     return client.sendMessage(m.from, statsPack);
   };
-  if (m.author === process.env.BOLAO_OWNER && m.body.startsWith('!bolao')) {
+  if (m.author === process.env.BOT_OWNER && m.body.startsWith('!bolao')) {
     console.log('Owner disse !bolao')
     const chat = await m.getChat();
     const command = getCommand(m.body);
@@ -57,7 +57,7 @@ const bolao = async (m) => {
     if (command && command.startsWith('calcula')) fechaRodada();
     return m.reply('Oi, tô vivo')
   }
-  if (m.author === process.env.BOLAO_OWNER && m.body.startsWith("!restart")) {
+  if (m.author === process.env.BOT_OWNER && m.body.startsWith("!restart")) {
     console.log('Owner disse !restart')
     if (data.activeRound.listening) {
       return client.sendMessage(m.author, 'Palpites ativos. Bot não pode ser reiniciado agora.');

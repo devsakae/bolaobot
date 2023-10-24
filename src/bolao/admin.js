@@ -1,13 +1,12 @@
 const prompts = require('./data/prompts.json');
 const data = require('./data/data.json');
-const { client } = require('./wpconnect');
+const { client } = require('../connections');
 const axios = require('axios');
 const { writeData } = require('./utils/fileHandler');
 const { forMatch } = require('./utils/functions');
 const { listaPalpites } = require('./user');
-const rapidapiurl = 'https://footapi7.p.rapidapi.com/api';
 
-function sendAdmin(what) { return client.sendMessage(process.env.BOLAO_OWNER, what); }
+function sendAdmin(what) { return client.sendMessage(process.env.BOT_OWNER, what); }
 
 async function fetchData(url) {
   try {
@@ -25,15 +24,11 @@ async function fetchData(url) {
   }
 }
 
-function ping() {
-  return client.sendMessage(process.env.BOLAO_OWNER, 'pong')
-}
-
 async function start(info) {
   const team = data.teams[info.teamIdx];
   const grupo = info.to.split('@')[0];
   try {
-    const dataFromApi = await fetchData(rapidapiurl + '/team/' + team.id + '/matches/next/' + info.page);
+    const dataFromApi = await fetchData(process.env.BOLAO_RAPIDAPI_URL + '/team/' + team.id + '/matches/next/' + info.page);
     if (dataFromApi.events.length < 1) return client.sendMessage(info.to, prompts.bolao.no_matches);
     const today = new Date();
     data[grupo] = ({
@@ -119,7 +114,7 @@ async function fechaRodada(repeat) {
   const today = new Date();
   const contatoGrupo = data.activeRound.grupo + '@g.us';
   // const matchInfo = mockMatch; // TEST
-  const matchInfo = await fetchData(rapidapiurl + '/match/' + data.activeRound.matchId);
+  const matchInfo = await fetchData(process.env.BOLAO_RAPIDAPI_URL + '/match/' + data.activeRound.matchId);
   if (matchInfo.event.status.code === 0) {
     if (repeat && repeat > 3) return sendAdmin('Não foi possível pegar o resultado da partida', data.activeRound.matchId);
     clearTimeout();
@@ -190,7 +185,6 @@ async function getStats(matchId) {
 
 
 module.exports = {
-  ping,
   start,
   fetchData,
   abreRodada,
