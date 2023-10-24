@@ -1,9 +1,9 @@
-const prompts = require('../data/prompts.json');
-const data = require('../data/data.json');
+const prompts = require('./data/prompts.json');
+const data = require('./data/data.json');
 const { client } = require('./wpconnect');
 const axios = require('axios');
-const { writeData } = require('../utils/fileHandler');
-const { forMatch } = require('../utils/functions');
+const { writeData } = require('./utils/fileHandler');
+const { forMatch } = require('./utils/functions');
 const { listaPalpites } = require('./user');
 const rapidapiurl = 'https://footapi7.p.rapidapi.com/api';
 
@@ -114,12 +114,18 @@ function encerraPalpite() {
   const programaFechamento = setTimeout(() => fechaRodada(), hoursInMs)
 }
 
-async function fechaRodada() {
+async function fechaRodada(repeat) {
   let response;
   const today = new Date();
   const contatoGrupo = data.activeRound.grupo + '@g.us';
   // const matchInfo = mockMatch; // TEST
   const matchInfo = await fetchData(rapidapiurl + '/match/' + data.activeRound.matchId);
+  if (matchInfo.event.status.code === 0) {
+    if (repeat && repeat > 3) return sendAdmin('Não foi possível pegar o resultado da partida', data.activeRound.matchId);
+    clearTimeout();
+    console.log('Reajuste de fechamento de rodada em meia hora pra frente');
+    return setTimeout(() => fechaRodada(repeat + 1), 1800000);
+  }
   // const matchHighlights = await fetchData(rapidapiurl + '/team/' + data.activeRound.teamId + '/media'); // Video highlights?
   const homeScore = matchInfo.event.homeScore.current;
   const awayScore = matchInfo.event.awayScore.current;
@@ -154,6 +160,7 @@ async function fechaRodada() {
   if (nextMatch.error) return client.sendMessage(contatoGrupo, 'Bolão finalizado! Sem mais rodadas para disputa');
   const calculatedTimeout = (nextMatch.hora - 115200000) - today.getTime(); // Abre nova rodada 36 horas antes do jogo
   const proximaRodada = setTimeout(() => abreRodada(), calculatedTimeout);
+  // const proximaRodada = setTimeout(() => abreRodada(), 30000); // TEST
   data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId].ranking = response;
   data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId].palpites = rankingDaRodada;
   data.activeRound = ({ ...data.activeRound, matchId: null, palpiteiros: [] });

@@ -5,7 +5,7 @@ function checkFolder() {
 }
 
 function writeData(data) {
-  fs.writeFileSync('./data/data.json', JSON.stringify(data, null, 4), 'utf-8', (err) => err && checkFolder())
+  fs.writeFileSync('./src/bolao/data/data.json', JSON.stringify(data, null, 4), 'utf-8', (err) => err && checkFolder())
 }
 
 module.exports = {
