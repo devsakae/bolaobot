@@ -168,6 +168,27 @@ async function fechaRodada(repeat) {
   return client.sendMessage(contatoGrupo, response);
 }
 
+async function getStats(matchId) {
+  const match = data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId];
+  const homeTeam = match.homeTeam;
+  const awayTeam = match.awayTeam;
+  try {
+    const responseFromApi = await fetchData(process.env.BOLAO_RAPIDAPI_URL + '/match/' + matchId + '/statistics');
+    const matchStats = responseFromApi.statistics.find((item) => item.period === 'ALL');
+    let formatStats = `Estatísticas de ${homeTeam} x ${awayTeam}`;
+    matchStats.groups.forEach((stat) => {
+      formatStats += `\n\n 👁‍🗨 *${stat.groupName}*`;
+      stat.statisticsItems.forEach((s) => {
+        formatStats += `\n${s.name}: ${s.home} x ${s.away}`
+      });
+    });
+    return formatStats;
+  } catch (err) {
+    return ({ error: true });
+  }
+}
+
+
 module.exports = {
   ping,
   start,
@@ -175,4 +196,5 @@ module.exports = {
   abreRodada,
   fechaRodada,
   pegaProximaRodada,
+  getStats,
 }

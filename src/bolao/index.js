@@ -2,8 +2,8 @@ const data = require('./data/data.json');
 const prompts = require('./data/prompts.json');
 const { client } = require('./wpconnect');
 const { getCommand } = require('./utils/functions');
-const { start, abreRodada, fechaRodada, pegaProximaRodada } = require('./admin');
-const { habilitaPalpite, listaPalpites, getRanking, getStats } = require('./user');
+const { start, abreRodada, fechaRodada, pegaProximaRodada, getStats } = require('./admin');
+const { habilitaPalpite, listaPalpites, getRanking } = require('./user');
 
 const bolao = async (m) => {
   if (m.hasQuotedMsg && data.activeRound) {
@@ -27,7 +27,8 @@ const bolao = async (m) => {
   };
   if (m.author === process.env.BOLAO_OWNER && m.body.startsWith('!ranking') && data.activeRound) {
     console.log('Owner disse !ranking')
-    const ranking = (command.length > 7) ? getRanking(command.substring(7).trimStart()) : getRanking();
+    const command = getCommand(m.body);
+    const ranking = command ? getRanking(command) : getRanking();
     client.sendMessage(m.from, ranking);
   }
   if (m.author === process.env.BOLAO_OWNER && m.body.startsWith('!stats')) {
@@ -67,7 +68,8 @@ const bolao = async (m) => {
     const calculatedTimeout = (nextMatch.hora - 115200000) - today.getTime(); // Abre nova rodada 36 horas antes do jogo
     const proximaRodada = setTimeout(() => abreRodada(), calculatedTimeout);
     // const proximaRodada = setTimeout(() => abreRodada(), 10000); // TEST
-    return client.sendMessage(m.author, `Reiniciando bolão com abertura da rodada em ${calculatedTimeout}`)
+    const quandoAbre = new Date(today.getTime() + calculatedTimeout);
+    return client.reply(`Bolão programado para abertura de rodada em ${quandoAbre.toLocaleString('pt-br')}`);
   }
   return;
 }
