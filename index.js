@@ -25,6 +25,7 @@ const { quotes } = require('./src/quotes');
     console.log('\n' + prompts.admin.welcome);
   }
 })();
+// pm2 start npm --name "BolaoBot" -- start && pm2 monit
 
 client.on('message', async (m) => {
   if (

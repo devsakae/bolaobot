@@ -67,7 +67,7 @@ const bolao = async (m) => {
     const proximaRodada = setTimeout(() => abreRodada(), calculatedTimeout);
     // const proximaRodada = setTimeout(() => abreRodada(), 10000); // TEST
     const quandoAbre = new Date(today.getTime() + calculatedTimeout);
-    return client.reply(`Bolão programado para abertura de rodada em ${quandoAbre.toLocaleString('pt-br')}`);
+    return client.sendMessage(data.activeRound.grupo + '@g.us', `Bolão programado para abertura de rodada em ${quandoAbre.toLocaleString('pt-br')}`);
   }
   return;
 }
