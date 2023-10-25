@@ -98,7 +98,7 @@ const quotes = async (m) => {
         autor: autor,
         data: data,
         gols: 1,
-        topico: '(Mensagem no grupo)'
+        titulo: '(Mensagem no grupo)'
       };
       const result = await db.collection('tigrelog').insertOne(quote);
       m.reply(`✔️ Quote salva com id _${result.insertedId}_`);
