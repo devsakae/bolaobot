@@ -2,7 +2,7 @@ const data = require('./data/data.json');
 const prompts = require('./data/prompts.json');
 const { client } = require('../connections');
 const { getCommand } = require('./utils/functions');
-const { start, abreRodada, fechaRodada, pegaProximaRodada, getStats, getOdds } = require('./admin');
+const { start, abreRodada, fechaRodada, pegaProximaRodada, getStats, getOdds, publicaRodada } = require('./admin');
 const { habilitaPalpite, listaPalpites, getRanking } = require('./user');
 
 const bolao = async (m) => {

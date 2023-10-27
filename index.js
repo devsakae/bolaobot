@@ -1,5 +1,6 @@
 const { client, mongoclient } = require('./src/connections');
 const data = require('./src/bolao/data/data.json');
+const defaultdata = require('./src/bolao/data/example.json');
 const prompts = require('./src/bolao/data/prompts.json');
 const { bolao } = require('./src/bolao');
 const { quotes } = require('./src/quotes');
@@ -16,7 +17,7 @@ const { quotes } = require('./src/quotes');
         if (!process.env.BOT_OWNER) return console.error(prompts.admin.no_owner);
         console.log('✔ Telefone do administrador:', process.env.BOLAO_OWNER.slice(2, -5))
         console.log('\nTimes liberados para disputa do bolão:');
-        data.teams.forEach((team) => console.log('-', team.name));
+        defaultdata.teams.forEach((team) => console.log('-', team.name));
         // MÓDULO BOLÃO - FIM //
       });
   } catch (err) {
