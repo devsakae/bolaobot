@@ -74,8 +74,6 @@ function pegaProximaRodada() {
 
 function abreRodada() {
   const grupo = data.activeRound.grupo + '@g.us';
-  const today = new Date();
-  const horaNow = today.getTime();
   const nextMatch = pegaProximaRodada();
   if (nextMatch.error) return client.sendMessage(grupo, 'Nenhuma rodada prevista! Abra um novo bolão');
   data.activeRound = ({
@@ -85,13 +83,22 @@ function abreRodada() {
     palpiteiros: [],
   });
   writeData(data);
+  publicaRodada();
+}
+
+function publicaRodada() {
+  const grupo = data.activeRound.grupo + '@g.us';
+  const today = new Date();
+  const horaNow = today.getTime();
+  const nextMatch = pegaProximaRodada();
+  const texto = forMatch(nextMatch);
   const limiteDeTempoParaPalpitesEmMinutos = 10; // Fazer configurável
   const limiteConvertidoEmMs = limiteDeTempoParaPalpitesEmMinutos * 60000;
   const timeoutInMs = nextMatch.hora - horaNow - limiteConvertidoEmMs;
   () => clearTimeout(encerramentoProgramado);
-  // const encerramentoProgramado = setTimeout(() => encerraPalpite(), 30000) // TEST
   const encerramentoProgramado = setTimeout(() => encerraPalpite(), timeoutInMs)
-  const texto = forMatch(nextMatch);
+  sendAdmin(`Rodada reaberta, com término previsto em ${new Date(horaNow + timeoutInMs).toLocaleString('pt-br')}`)
+  const mandaOdds = setTimeout(() => getOdds(), 60000);
   return client.sendMessage(grupo, texto);
 }
 
@@ -121,7 +128,8 @@ async function fechaRodada(repeat) {
     console.log('Reajuste de fechamento de rodada em meia hora pra frente');
     return setTimeout(() => fechaRodada(repeat + 1), 1800000);
   }
-  // const matchHighlights = await fetchData(rapidapiurl + '/team/' + data.activeRound.teamId + '/media'); // Video highlights?
+  // Verificar teamId para buscar highlights
+  // const matchHighlights = await fetchData(process.env.BOLAO_RAPIDAPI_URL + '/team/' + data.activeRound.teamId + '/media'); // Video highlights?
   const homeScore = matchInfo.event.homeScore.current;
   const awayScore = matchInfo.event.awayScore.current;
   const resultado = Number(matchInfo.event.homeScore.current) > Number(matchInfo.event.awayScore.current) ? 'V' : Number(matchInfo.event.homeScore.current) < Number(matchInfo.event.awayScore.current) ? 'D' : 'E';
@@ -185,6 +193,8 @@ async function getStats(matchId) {
 
 async function getOdds() {
   const today = new Date();
+  const nextMatch = data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId];
+if (nextMatch.odds) return client.sendMessage(data.activeRound.grupo + '@g.us')
   const leagueId = 1835 // Série B 2023
   const url = 'https://pinnacle-odds.p.rapidapi.com/kit/v1/markets';
   const options = {
@@ -203,13 +213,23 @@ async function getOdds() {
   try {
     const response = await axios.request(options);
     const teamRegex = new RegExp(data.activeRound.slug, "i");
-    const oddsObj = response.data.events.find((event) => event.home.match(teamRegex || event.away.match(teamRegex)));
+    const oddsObj = response.data.events.find((event) => event.home.match(teamRegex) || event.away.match(teamRegex));
     console.log('FOUND ODDS OBJ');
     console.log(oddsObj);
     if (!oddsObj.is_have_odds) return client.sendMessage(data.activeRound.grupo + '@g.us', 'Partida sem odds registradas ☠️');
+    const oddHome = oddsObj.periods.num_0.money_line.home;
+    const oddDraw = oddsObj.periods.num_0.money_line.draw;
+    const oddAway = oddsObj.periods.num_0.money_line.away;
+    const messageResponse = `🍀 Odds para ${nextMatch.homeTeam} x ${nextMatch.awayTeam} (${nextMatch.rodada}ª rodada)
+  
+${nextMatch.homeTeam}: ${oddHome}
+${nextMatch.awayTeam}: ${oddAway}
+Empate: ${oddDraw}
 
-    // oddsDoJogo = { Criciuma: 1, Sampaio: 2 }
-    // data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId].odds = oddsDoJogo
+👉 Odds de pinnacle.com`
+    nextMatch.odds = oddsObj
+    writeData(data);
+    client.sendMessage(data.activeRound.grupo + '@g.us', messageResponse)
   } catch (error) {
     console.error(err);
     sendAdmin('Erro fetching odds', error)
@@ -220,7 +240,9 @@ module.exports = {
   start,
   fetchData,
   abreRodada,
+  publicaRodada,
   fechaRodada,
   pegaProximaRodada,
   getStats,
+  getOdds,
 }

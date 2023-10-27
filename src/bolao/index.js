@@ -2,7 +2,7 @@ const data = require('./data/data.json');
 const prompts = require('./data/prompts.json');
 const { client } = require('../connections');
 const { getCommand } = require('./utils/functions');
-const { start, abreRodada, fechaRodada, pegaProximaRodada, getStats } = require('./admin');
+const { start, abreRodada, fechaRodada, pegaProximaRodada, getStats, getOdds } = require('./admin');
 const { habilitaPalpite, listaPalpites, getRanking } = require('./user');
 
 const bolao = async (m) => {
@@ -53,13 +53,12 @@ const bolao = async (m) => {
       return;
     };
     if (command && command.startsWith('calcula')) fechaRodada();
+    if (command && command.startsWith('odds')) getOdds();
     return m.reply('Oi, tô vivo')
   }
   if (m.author === process.env.BOT_OWNER && m.body.startsWith("!restart")) {
     console.log('Owner disse !restart')
-    if (data.activeRound.listening) {
-      return client.sendMessage(m.author, 'Palpites ativos. Bot não pode ser reiniciado agora.');
-    }
+    if (data.activeRound.listening) return publicaRodada();
     const today = new Date();
     const nextMatch = pegaProximaRodada();
     if (nextMatch.error) return client.sendMessage(m.author, 'Bolão finalizado! Sem mais rodadas para disputa');

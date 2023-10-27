@@ -4,15 +4,16 @@ const { writeData } = require('./utils/fileHandler');
 async function habilitaPalpite(info) {
   const grupo = info.m.from.split('@')[0];
   const today = new Date();
-  const regex = /\d+\s*[xX]\s*\d+/;
-  let placar = info.m.body.match(regex)[0].split('x');
-  if (placar.length < 2) placar = message.body.match(regex[0].split('X'));
+  const regex = /\d+\s*[x]\s*\d+/i
+  if (!info.m.body.match(regex)) return info.m.reply('Isso é um palpite? Onde?');
+  const homeScore = info.m.body.match(regex)[0].match(/^\d+/i);
+  const awayScore = info.m.body.match(regex)[0].match(/\d+$/i);
   const palpiPack = ({
     userId: info.m.author,
     userName: info.user,
-    homeScore: Number(placar[0].trim()),
-    awayScore: Number(placar[1].trim()),
-    resultado: Number(placar[0].trim()) > Number(placar[1].trim()) ? 'V' : Number(placar[0].trim()) < Number(placar[1].trim()) ? 'D' : 'E',
+    homeScore: Number(homeScore),
+    awayScore: Number(awayScore),
+    resultado: Number(homeScore) > Number(awayScore) ? 'V' : Number(homeScore) < Number(awayScore) ? 'D' : 'E',
   })
   data.activeRound.palpiteiros.push(info.m.author);
   data[grupo][data.activeRound.team][today.getFullYear()][info.matchId].palpites.push(palpiPack);
