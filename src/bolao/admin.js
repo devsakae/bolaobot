@@ -183,6 +183,38 @@ async function getStats(matchId) {
   }
 }
 
+async function getOdds() {
+  const today = new Date();
+  const leagueId = 1835 // Série B 2023
+  const url = 'https://pinnacle-odds.p.rapidapi.com/kit/v1/markets';
+  const options = {
+    method: 'GET',
+    url: url,
+    params: {
+      sport_id: '1',
+      league_ids: leagueId,
+      is_have_odds: 'true'
+    },
+    headers: {
+      'X-RapidAPI-Key': process.env.BOLAO_RAPIDAPI_KEY,
+      'X-RapidAPI-Host': process.env.BOLAO_PINNACLE_ODDS_HOST
+    }
+  };
+  try {
+    const response = await axios.request(options);
+    const teamRegex = new RegExp(data.activeRound.slug, "i");
+    const oddsObj = response.data.events.find((event) => event.home.match(teamRegex || event.away.match(teamRegex)));
+    console.log('FOUND ODDS OBJ');
+    console.log(oddsObj);
+    if (!oddsObj.is_have_odds) return client.sendMessage(data.activeRound.grupo + '@g.us', 'Partida sem odds registradas ☠️');
+
+    // oddsDoJogo = { Criciuma: 1, Sampaio: 2 }
+    // data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId].odds = oddsDoJogo
+  } catch (error) {
+    console.error(err);
+    sendAdmin('Erro fetching odds', error)
+  }
+}
 
 module.exports = {
   start,
