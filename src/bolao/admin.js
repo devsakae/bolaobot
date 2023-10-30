@@ -98,7 +98,7 @@ function publicaRodada() {
   () => clearTimeout(encerramentoProgramado);
   const encerramentoProgramado = setTimeout(() => encerraPalpite(), timeoutInMs)
   sendAdmin(`Rodada reaberta, com término previsto em ${new Date(horaNow + timeoutInMs).toLocaleString('pt-br')}`)
-  const mandaOdds = setTimeout(() => getOdds(), 60000);
+  const mandaOdds = setTimeout(() => getOdds(), 180000);
   return client.sendMessage(grupo, texto);
 }
 
@@ -161,9 +161,11 @@ async function fechaRodada(repeat) {
   });
   const nextMatch = pegaProximaRodada();
   if (nextMatch.error) return client.sendMessage(contatoGrupo, 'Bolão finalizado! Sem mais rodadas para disputa');
+  const showStats = setTimeout(() => getStats(data.activeRound.matchId), 10000);
   const calculatedTimeout = (nextMatch.hora - 115200000) - today.getTime(); // Abre nova rodada 36 horas antes do jogo
   const proximaRodada = setTimeout(() => abreRodada(), calculatedTimeout);
-  // const proximaRodada = setTimeout(() => abreRodada(), 30000); // TEST
+  const dataDaAbertura = new Date(today.getTime() + calculatedTimeout);
+  const informaAbertura = setTimetout(() => client.sendMessage(contatoGrupo, `Próxima rodada com abertura programada para ${dataDaAbertura.toLocaleString('pt-br')}`), )
   data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId].ranking = response;
   data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId].palpites = rankingDaRodada;
   data.activeRound = ({ ...data.activeRound, matchId: null, palpiteiros: [] });
