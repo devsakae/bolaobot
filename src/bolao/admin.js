@@ -172,7 +172,8 @@ async function fechaRodada(repeat) {
 }
 
 async function getStats(matchId) {
-  const match = data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId];
+  const today = new Date();
+  const match = data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][matchId];
   const homeTeam = match.homeTeam;
   const awayTeam = match.awayTeam;
   try {
@@ -194,7 +195,7 @@ async function getStats(matchId) {
 async function getOdds() {
   const today = new Date();
   const nextMatch = data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId];
-if (nextMatch.odds) return client.sendMessage(data.activeRound.grupo + '@g.us')
+  if (nextMatch.odds) return client.sendMessage(data.activeRound.grupo + '@g.us')
   const leagueId = 1835 // Série B 2023
   const url = 'https://pinnacle-odds.p.rapidapi.com/kit/v1/markets';
   const options = {
@@ -214,8 +215,6 @@ if (nextMatch.odds) return client.sendMessage(data.activeRound.grupo + '@g.us')
     const response = await axios.request(options);
     const teamRegex = new RegExp(data.activeRound.slug, "i");
     const oddsObj = response.data.events.find((event) => event.home.match(teamRegex) || event.away.match(teamRegex));
-    console.log('FOUND ODDS OBJ');
-    console.log(oddsObj);
     if (!oddsObj.is_have_odds) return client.sendMessage(data.activeRound.grupo + '@g.us', 'Partida sem odds registradas ☠️');
     const oddHome = oddsObj.periods.num_0.money_line.home;
     const oddDraw = oddsObj.periods.num_0.money_line.draw;
