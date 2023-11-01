@@ -15,7 +15,7 @@ const { quotes } = require('./src/quotes');
         if (response) console.log('\n✔ Conexão com MongoDB');
         // MÓDULO BOLÃO - INÍCIO //
         if (!process.env.BOT_OWNER) return console.error(prompts.admin.no_owner);
-        console.log('✔ Telefone do administrador:', process.env.BOLAO_OWNER.slice(2, -5))
+        console.log('✔ Telefone do administrador:', process.env.BOT_OWNER.slice(2, -5))
         console.log('\nTimes liberados para disputa do bolão:');
         defaultdata.teams.forEach((team) => console.log('-', team.name));
         // MÓDULO BOLÃO - FIM //
