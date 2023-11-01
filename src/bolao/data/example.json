@@ -3,9 +3,44 @@
     "ranking": [],
     "teams": [
         {
+            "id": 21838,
+            "name": "ABC",
+            "slug": "abc"
+        },
+        {
+            "id": 7314,
+            "name": "Atlético Goianiense",
+            "slug": "atletico-goianiense"
+        },
+        {
+            "id": 7315,
+            "name": "Avaí",
+            "slug": "avai"
+        },
+        {
+            "id": 1979,
+            "name": "Botafogo-SP",
+            "slug": "botafogo-sp"
+        },
+        {
+            "id": 2001,
+            "name": "Ceará",
+            "slug": "ceara"
+        },
+        {
+            "id": 21845,
+            "name": "Chapecoense",
+            "slug": "chapecoense"
+        },
+        {
             "id": 1982,
             "name": "Coritiba",
             "slug": "coritiba"
+        },
+        {
+            "id": 22032,
+            "name": "CRB",
+            "slug": "crb"
         },
         {
             "id": 1984,
@@ -13,9 +48,59 @@
             "slug": "criciuma"
         },
         {
-            "id": 21845,
-            "name": "Chapecoense",
-            "slug": "chapecoense"
+            "id": 1972,
+            "name": "Guarani",
+            "slug": "guarani"
+        },
+        {
+            "id": 1980,
+            "name": "Juventude",
+            "slug": "juventude"
+        },
+        {
+            "id": 2022,
+            "name": "Londrina",
+            "slug": "londrina"
+        },
+        {
+            "id": 21982,
+            "name": "Mirassol",
+            "slug": "mirassol"
+        },
+        {
+            "id": 135514,
+            "name": "Novorizontino",
+            "slug": "novorizontino"
+        },
+        {
+            "id": 1969,
+            "name": "Ponte Preta",
+            "slug": "ponte-preta"
+        },
+        {
+            "id": 2005,
+            "name": "Sampaio Corrêa",
+            "slug": "sampaio-correa"
+        },
+        {
+            "id": 1959,
+            "name": "Sport Recife",
+            "slug": "sport-recife"
+        },
+        {
+            "id": 87202,
+            "name": "Tombense",
+            "slug": "tombense"
+        },
+        {
+            "id": 2021,
+            "name": "Vila Nova",
+            "slug": "vila-nova"
+        },
+        {
+            "id": 1962,
+            "name": "Vitória",
+            "slug": "vitoria"
         }
     ]
 }
