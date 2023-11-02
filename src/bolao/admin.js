@@ -98,7 +98,7 @@ function publicaRodada() {
   () => clearTimeout(encerramentoProgramado);
   const encerramentoProgramado = setTimeout(() => encerraPalpite(), timeoutInMs)
   sendAdmin(`Rodada reaberta, com término previsto em ${new Date(horaNow + timeoutInMs).toLocaleString('pt-br')}`)
-  const mandaOdds = setTimeout(() => getOdds(), 180000);
+  predictions();
   return client.sendMessage(grupo, texto);
 }
 
@@ -217,7 +217,6 @@ async function predictions() {
     const nextMatchId = getNextMatch.data.response[0].fixture.id;
     const getPredictions = await axios.request(predictions_options('/predictions', { fixture: nextMatchId }));
     const predicts = getPredictions.data.response[0];
-    console.log(predicts);
     const superStats = `👁 Stats pre-match para ${predicts.teams.home.name} x ${predicts.teams.away.name}
 
 👉 *Resultado*
@@ -243,10 +242,11 @@ ${predicts.h2h[0].teams.away.name}: ${predicts.predictions.percent.away}
 Participe do grupo TigreLOG ou adquira o bot para o seu grupo (devsakae.tech)`;
     data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId].predictions = superStats;
     writeData(data);
-    return client.sendMessage(data.activeRound.grupo + '@g.us', superStats);
+    const abreProGrupo = setTimeout(() => client.sendMessage(data.activeRound.grupo + '@g.us', superStats), 3 * 3600000)
+    return sendAdmin(superStats);
   } catch (err) {
     console.error(err);
-    return client.sendMessage(data.activeRound.grupo + '@g.us', err)
+    return sendAdmin(err);
   }
 }
 
