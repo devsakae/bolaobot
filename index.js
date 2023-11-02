@@ -4,6 +4,7 @@ const defaultdata = require('./src/bolao/data/example.json');
 const prompts = require('./src/bolao/data/prompts.json');
 const { bolao } = require('./src/bolao');
 const { quotes } = require('./src/quotes');
+const { predictions } = require('./src/bolao/admin');
 
 (async () => {
   try {
@@ -17,7 +18,10 @@ const { quotes } = require('./src/quotes');
         if (!process.env.BOT_OWNER) return console.error(prompts.admin.no_owner);
         console.log('✔ Telefone do administrador:', process.env.BOT_OWNER.slice(2, -5))
         console.log('\nTimes liberados para disputa do bolão:');
-        defaultdata.teams.forEach((team) => console.log('-', team.name));
+        let allTeams = defaultdata.teams[0].name
+        defaultdata.teams.shift();
+        defaultdata.teams.forEach((team) => allTeams += (' | ' + team.name));
+        console.log(allTeams);
         // MÓDULO BOLÃO - FIM //
       });
   } catch (err) {
@@ -36,8 +40,7 @@ client.on('message', async (m) => {
     m.body.startsWith('!autor') ||
     m.body.startsWith('!data') ||
     m.body.startsWith('!delquote')
-  ) {
-    await quotes(m);
-  }
+  ) await quotes(m)
+  if (m.body.startsWith('!odds') && m.author === process.env.BOT_OWNER) await predictions();
   await bolao(m);
 });

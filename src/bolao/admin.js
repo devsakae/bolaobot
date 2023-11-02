@@ -165,7 +165,7 @@ async function fechaRodada(repeat) {
   const calculatedTimeout = (nextMatch.hora - 115200000) - today.getTime(); // Abre nova rodada 36 horas antes do jogo
   const proximaRodada = setTimeout(() => abreRodada(), calculatedTimeout);
   const dataDaAbertura = new Date(today.getTime() + calculatedTimeout);
-  const informaAbertura = setTimetout(() => client.sendMessage(contatoGrupo, `Próxima rodada com abertura programada para ${dataDaAbertura.toLocaleString('pt-br')}`), )
+  const informaAbertura = setTimetout(() => client.sendMessage(contatoGrupo, `Próxima rodada com abertura programada para ${dataDaAbertura.toLocaleString('pt-br')}`),)
   data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId].ranking = response;
   data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId].palpites = rankingDaRodada;
   data.activeRound = ({ ...data.activeRound, matchId: null, palpiteiros: [] });
@@ -191,6 +191,62 @@ async function getStats(matchId) {
     return formatStats;
   } catch (err) {
     return ({ error: true });
+  }
+}
+
+const predictions_options = (url, params) => ({
+  method: 'GET',
+  url: process.env.FOOTBALL_API_URL + url,
+  params: params,
+  headers: {
+    'X-RapidAPI-Key': process.env.BOLAO_RAPIDAPI_KEY,
+    'X-RapidAPI-Host': process.env.FOOTBALL_API_HOST
+  }
+});
+
+async function predictions() {
+  const today = new Date();
+  const nextMatch = data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId];
+  if (nextMatch && nextMatch.predictions) return client.sendMessage(data.activeRound.grupo + '@g.us', nextMatch.predictions);
+  try {
+    const getTeam = await axios.request(predictions_options('/teams', { name: data.activeRound.team }));
+    if (getTeam.data.response.length < 1) throw new Error('Nenhum time foi encontrado. Verifique as configurações de time.')
+    const teamId = getTeam.data.response[0].team.id;
+    const getNextMatch = await axios.request(predictions_options('/fixtures', { team: teamId, next: '1' }));
+    if (!getNextMatch.data.response) throw new Error('Não existem previsões na API');
+    const nextMatchId = getNextMatch.data.response[0].fixture.id;
+    const getPredictions = await axios.request(predictions_options('/predictions', { fixture: nextMatchId }));
+    const predicts = getPredictions.data.response[0];
+    console.log(predicts);
+    const superStats = `👁 Stats pre-match para ${predicts.teams.home.name} x ${predicts.teams.away.name}
+
+👉 *Resultado*
+${predicts.predictions.winner.comment} de ${predicts.predictions.winner.name}
+
+🍀 *Super dica*
+${predicts.predictions.advice}
+
+⚽️ *Gol(s) marcado(s)*
+${predicts.teams.home.name}: ${predicts.predictions.goals.home}
+${predicts.teams.away.name}: ${predicts.predictions.goals.away}
+
+⚖️ *Chances*
+${predicts.h2h[0].teams.home.name}: ${predicts.predictions.percent.home}
+Empate: ${predicts.predictions.percent.draw}
+${predicts.h2h[0].teams.away.name}: ${predicts.predictions.percent.away}
+
+*Última partida*: ${predicts.h2h[0].teams.home.name} ${predicts.h2h[0].goals.home} x ${predicts.h2h[0].goals.home} ${predicts.h2h[0].teams.away.name}
+📍 ${predicts.h2h[0].league.name} ${predicts.h2h[0].league.season}
+📆 ${predicts.h2h[0].fixture.date}
+🏟 ${predicts.h2h[0].fixture.venue.name} (${predicts.h2h[0].fixture.venue.city})
+
+Participe do grupo TigreLOG ou adquira o bot para o seu grupo (devsakae.tech)`;
+    data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId].predictions = superStats;
+    writeData(data);
+    return client.sendMessage(data.activeRound.grupo + '@g.us', superStats);
+  } catch (err) {
+    console.error(err);
+    return client.sendMessage(data.activeRound.grupo + '@g.us', err)
   }
 }
 
@@ -246,4 +302,5 @@ module.exports = {
   pegaProximaRodada,
   getStats,
   getOdds,
+  predictions,
 }
