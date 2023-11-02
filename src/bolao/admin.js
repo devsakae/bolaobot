@@ -54,6 +54,7 @@ async function start(info) {
     });
     writeData(data);
     while (dataFromApi.hasNextPage) return start({ ...info, page: info.page + 1 });
+    abreRodada(info.to);
     return client.sendMessage(info.to, `👉 Bolão ${team.name} criado com sucesso!\n\n*${dataFromApi.events.length}* rodadas programadas para disputa`);
   } catch (err) {
     return sendAdmin(err);
@@ -72,10 +73,9 @@ function pegaProximaRodada() {
   return { error: true };
 }
 
-function abreRodada() {
-  const grupo = data.activeRound.grupo + '@g.us';
+function abreRodada(group) {
   const nextMatch = pegaProximaRodada();
-  if (nextMatch.error) return client.sendMessage(grupo, 'Nenhuma rodada prevista! Abra um novo bolão');
+  if (nextMatch.error) return client.sendMessage(group, 'Nenhuma rodada prevista! Abra um novo bolão');
   data.activeRound = ({
     ...data.activeRound,
     listening: true,
@@ -83,11 +83,10 @@ function abreRodada() {
     palpiteiros: [],
   });
   writeData(data);
-  publicaRodada();
+  publicaRodada(group);
 }
 
-function publicaRodada() {
-  const grupo = data.activeRound.grupo + '@g.us';
+function publicaRodada(group) {
   const today = new Date();
   const horaNow = today.getTime();
   const nextMatch = pegaProximaRodada();
@@ -96,20 +95,20 @@ function publicaRodada() {
   const limiteConvertidoEmMs = limiteDeTempoParaPalpitesEmMinutos * 60000;
   const timeoutInMs = nextMatch.hora - horaNow - limiteConvertidoEmMs;
   () => clearTimeout(encerramentoProgramado);
-  const encerramentoProgramado = setTimeout(() => encerraPalpite(), timeoutInMs)
+  const encerramentoProgramado = setTimeout(() => encerraPalpite(group), timeoutInMs)
   sendAdmin(`Rodada reaberta, com término previsto em ${new Date(horaNow + timeoutInMs).toLocaleString('pt-br')}`)
   predictions();
-  return client.sendMessage(grupo, texto);
+  return client.sendMessage(group, texto);
 }
 
-function encerraPalpite() {
+function encerraPalpite(group) {
   const today = new Date();
   const encerramento = '⛔️⛔️ Tempo esgotado! ⛔️⛔️\n\n'
   data.activeRound.listening = false;
   writeData(data);
   const listaDePalpites = listaPalpites();
-  if (data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId].palpites.length < 1) return client.sendMessage(data.activeRound.grupo + '@g.us', 'Nenhum palpite foi cadastrado!');
-  client.sendMessage(data.activeRound.grupo + '@g.us', encerramento + listaDePalpites);
+  if (data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId].palpites.length < 1) return client.sendMessage(group, 'Nenhum palpite foi cadastrado!');
+  client.sendMessage(group, encerramento + listaDePalpites);
   const hours = 8;  // Prazo (em horas) para buscar o resultado da partida após o encerramento dos palpites
   const hoursInMs = hours * 3600000;
   // const programaFechamento = setTimeout(() => fechaRodada(), 5000) // TEST
@@ -119,13 +118,13 @@ function encerraPalpite() {
 async function fechaRodada(repeat) {
   let response;
   const today = new Date();
-  const contatoGrupo = data.activeRound.grupo + '@g.us';
+  const grupo = data.activeRound.grupo + '@g.us';
   // const matchInfo = mockMatch; // TEST
   const matchInfo = await fetchData(process.env.BOLAO_RAPIDAPI_URL + '/match/' + data.activeRound.matchId);
   if (matchInfo.event.status.code === 0) {
-    if (repeat && repeat > 3) return sendAdmin('Não foi possível pegar o resultado da partida', data.activeRound.matchId);
     clearTimeout();
-    console.log('Reajuste de fechamento de rodada em meia hora pra frente');
+    if (repeat && repeat > 3) return sendAdmin('Erro ao buscar informações da partida.\n\nVerifique o endpoint ', process.env.BOLAO_RAPIDAPI_URL + '/match/' + data.activeRound.matchId);
+    sendAdmin(`Match de id ${data.activeRound.matchId} não finalizada. Será realizada a tentativa #${repeat + 1} novamente em 30 minutos.`)
     return setTimeout(() => fechaRodada(repeat + 1), 1800000);
   }
   // Verificar teamId para buscar highlights
@@ -149,7 +148,7 @@ async function fechaRodada(repeat) {
     data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId].ranking = response;
     data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId].palpites = rankingDaRodada;
     writeData(data);
-    return client.sendMessage(contatoGrupo, response);
+    return client.sendMessage(grupo, response);
   }
   response = `🏁🏁 Resultado do bolão da ${matchInfo.event.roundInfo.round}ª rodada 🏁🏁\n`;
   response += `\nPartida: ${matchInfo.event.homeRedCards ? '🟥'.repeat(matchInfo.event.homeRedCards) : ''}${matchInfo.event.homeTeam.name} ${homeScore} x ${awayScore} ${matchInfo.event.awayTeam.name}${matchInfo.event.awayRedCards ? '🟥'.repeat(matchInfo.event.awayRedCards) : ''}\n`;
@@ -160,17 +159,18 @@ async function fechaRodada(repeat) {
       : response += `\n${pos.userName} zerou com o palpite ${pos.homeScore} x ${pos.awayScore}`
   });
   const nextMatch = pegaProximaRodada();
-  if (nextMatch.error) return client.sendMessage(contatoGrupo, 'Bolão finalizado! Sem mais rodadas para disputa');
-  const showStats = setTimeout(() => getStats(data.activeRound.matchId), 10000);
+  if (nextMatch.error) return client.sendMessage(grupo, 'Bolão finalizado! Sem mais rodadas para disputa. Veja como ficou o ranking escrevendo !ranking no canal (admin only)');
+  const matchStats = await getStats(data.activeRound.matchId);
+  client.sendMessage(grupo, matchStats);
   const calculatedTimeout = (nextMatch.hora - 115200000) - today.getTime(); // Abre nova rodada 36 horas antes do jogo
   const proximaRodada = setTimeout(() => abreRodada(), calculatedTimeout);
   const dataDaAbertura = new Date(today.getTime() + calculatedTimeout);
-  const informaAbertura = setTimetout(() => client.sendMessage(contatoGrupo, `Próxima rodada com abertura programada para ${dataDaAbertura.toLocaleString('pt-br')}`),)
+  const informaAbertura = setTimeout(() => client.sendMessage(grupo, `Próxima rodada com abertura programada para ${dataDaAbertura.toLocaleString('pt-br')}`), 3600000)
   data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId].ranking = response;
   data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId].palpites = rankingDaRodada;
   data.activeRound = ({ ...data.activeRound, matchId: null, palpiteiros: [] });
   writeData(data);
-  return client.sendMessage(contatoGrupo, response);
+  return client.sendMessage(grupo, response);
 }
 
 async function getStats(matchId) {
@@ -204,10 +204,10 @@ const predictions_options = (url, params) => ({
   }
 });
 
-async function predictions() {
+async function predictions(group) {
   const today = new Date();
   const nextMatch = data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId];
-  if (nextMatch && nextMatch.predictions) return client.sendMessage(data.activeRound.grupo + '@g.us', nextMatch.predictions);
+  if (nextMatch && nextMatch.predictions) return client.sendMessage(group, nextMatch.predictions);
   try {
     const getTeam = await axios.request(predictions_options('/teams', { name: data.activeRound.team }));
     if (getTeam.data.response.length < 1) throw new Error('Nenhum time foi encontrado. Verifique as configurações de time.')
@@ -242,54 +242,11 @@ ${predicts.h2h[0].teams.away.name}: ${predicts.predictions.percent.away}
 Participe do grupo TigreLOG ou adquira o bot para o seu grupo (devsakae.tech)`;
     data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId].predictions = superStats;
     writeData(data);
-    const abreProGrupo = setTimeout(() => client.sendMessage(data.activeRound.grupo + '@g.us', superStats), 3 * 3600000)
+    // const abreProGrupo = setTimeout(() => client.sendMessage(group, superStats), 3 * 3600000)
     return sendAdmin(superStats);
   } catch (err) {
     console.error(err);
     return sendAdmin(err);
-  }
-}
-
-async function getOdds() {
-  const today = new Date();
-  const nextMatch = data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId];
-  if (nextMatch.odds) return client.sendMessage(data.activeRound.grupo + '@g.us')
-  const leagueId = 1835 // Série B 2023
-  const url = 'https://pinnacle-odds.p.rapidapi.com/kit/v1/markets';
-  const options = {
-    method: 'GET',
-    url: url,
-    params: {
-      sport_id: '1',
-      league_ids: leagueId,
-      is_have_odds: 'true'
-    },
-    headers: {
-      'X-RapidAPI-Key': process.env.BOLAO_RAPIDAPI_KEY,
-      'X-RapidAPI-Host': process.env.BOLAO_PINNACLE_ODDS_HOST
-    }
-  };
-  try {
-    const response = await axios.request(options);
-    const teamRegex = new RegExp(data.activeRound.slug, "i");
-    const oddsObj = response.data.events.find((event) => event.home.match(teamRegex) || event.away.match(teamRegex));
-    if (!oddsObj.is_have_odds) return client.sendMessage(data.activeRound.grupo + '@g.us', 'Partida sem odds registradas ☠️');
-    const oddHome = oddsObj.periods.num_0.money_line.home;
-    const oddDraw = oddsObj.periods.num_0.money_line.draw;
-    const oddAway = oddsObj.periods.num_0.money_line.away;
-    const messageResponse = `🍀 Odds para ${nextMatch.homeTeam} x ${nextMatch.awayTeam} (${nextMatch.rodada}ª rodada)
-  
-${nextMatch.homeTeam}: ${oddHome}
-${nextMatch.awayTeam}: ${oddAway}
-Empate: ${oddDraw}
-
-👉 Odds de pinnacle.com`
-    nextMatch.odds = oddsObj
-    writeData(data);
-    client.sendMessage(data.activeRound.grupo + '@g.us', messageResponse)
-  } catch (error) {
-    console.error(err);
-    sendAdmin('Erro fetching odds', error)
   }
 }
 
@@ -301,6 +258,5 @@ module.exports = {
   fechaRodada,
   pegaProximaRodada,
   getStats,
-  getOdds,
   predictions,
 }

@@ -41,6 +41,10 @@ client.on('message', async (m) => {
     m.body.startsWith('!data') ||
     m.body.startsWith('!delquote')
   ) await quotes(m)
-  if (m.body.startsWith('!odds') && m.author === process.env.BOT_OWNER) await predictions();
+  if (m.body.startsWith('!teste') && m.author === process.env.BOT_OWNER) {
+    const chat = m.getChat();
+    (await chat).sendStateTyping();
+    return await predictions(m.from);
+  }
   await bolao(m);
 });
