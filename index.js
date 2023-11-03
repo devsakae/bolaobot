@@ -40,8 +40,8 @@ client.on('message', async (m) => {
     m.body.startsWith('!autor') ||
     m.body.startsWith('!data') ||
     m.body.startsWith('!delquote')
-  ) await quotes(m)
-  if (m.body.startsWith('!teste') && m.author === process.env.BOT_OWNER) {
+  ) await quotes(m);
+  if (m.body.startsWith('!predict') && (m.author === process.env.BOT_OWNER || m.from === process.env.BOT_OWNER)) {
     const chat = await m.getChat();
     chat.sendStateTyping();
     return await predictions(m.from);

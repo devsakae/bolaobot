@@ -191,8 +191,7 @@ const predictions = async (group) => {
     const superStats = formatPredicts(getPredictions.data.response[0]);
     data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId].predictions = superStats;
     writeData(data);
-    // const abreProGrupo = setTimeout(() => client.sendMessage(group, superStats), 3 * 3600000)
-    return sendAdmin(superStats);
+    return client.sendMessage(group, superStats);
   } catch (err) {
     console.error(err);
     return sendAdmin(err);

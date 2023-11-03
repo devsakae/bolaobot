@@ -54,23 +54,23 @@ Id da partida: ${match.id}`;
 const formatPredicts = (predicts) => {
   let response = `👁 Stats pre-match para ${predicts.teams.home.name} x ${predicts.teams.away.name}
 
-  👉 *Resultado*
+👉 *Resultado*
   ${predicts.predictions.winner.comment} de ${predicts.predictions.winner.name}
-  
-  🍀 *Super dica*
+
+🍀 *Super dica*
   ${predicts.predictions.advice}
-  
-  ⚽️ *Gol(s) marcado(s)*
+
+⚽️ *Gol(s) marcado(s)*
   ${predicts.teams.home.name}: ${predicts.predictions.goals.home}
   ${predicts.teams.away.name}: ${predicts.predictions.goals.away}
-  
-  📈 *Chances*
-  ${predicts.h2h[0].teams.home.name}: ${predicts.predictions.percent.home}
+
+📈 *Chances*
+  ${predicts.teams.home.name}: ${predicts.predictions.percent.home}
   Empate: ${predicts.predictions.percent.draw}
-  ${predicts.h2h[0].teams.away.name}: ${predicts.predictions.percent.away}
-  
-  🗂 *Última(s) partida(s)*\n`;
-  predicts.h2h.forEach((match) => response += `\n${match.teams.home.name} ${match.goals.home} x ${match.goals.home} ${match.teams.away.name} (${match.league.name} ${match.league.season})`);
+  ${predicts.teams.away.name}: ${predicts.predictions.percent.away}
+
+🗂 *Última(s) partida(s)*`;
+  predicts.h2h.forEach((match) => response += `\n ${match.teams.home.name} ${match.goals.home} x ${match.goals.home} ${match.teams.away.name} (${match.league.name} ${match.league.season})`);
   response += `\n\nParticipe do grupo TigreLOG ou adquira o bot para o seu grupo (devsakae.tech)`
   return response;
 };
