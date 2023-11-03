@@ -3,28 +3,10 @@ const data = require('./data/data.json');
 const { client } = require('../connections');
 const axios = require('axios');
 const { writeData } = require('./utils/fileHandler');
-const { forMatch } = require('./utils/functions');
+const { forMatch, formatPredicts, predictions_options, sendAdmin, fetchData } = require('./utils/functions');
 const { listaPalpites } = require('./user');
 
-function sendAdmin(what) { return client.sendMessage(process.env.BOT_OWNER, what); }
-
-async function fetchData(url) {
-  try {
-    const response = await axios.request({
-      method: 'GET',
-      url: url,
-      headers: {
-        'X-RapidAPI-Key': process.env.BOLAO_RAPIDAPI_KEY,
-        'X-RapidAPI-Host': process.env.BOLAO_RAPIDAPI_HOST,
-      },
-    });
-    return response.data;
-  } catch (err) {
-    return sendAdmin(err);
-  }
-}
-
-async function start(info) {
+const start = async (info) => {
   const team = data.teams[info.teamIdx];
   const grupo = info.to.split('@')[0];
   try {
@@ -61,7 +43,7 @@ async function start(info) {
   }
 }
 
-function pegaProximaRodada() {
+const pegaProximaRodada = () => {
   const today = new Date();
   const grupo = data.activeRound.grupo;
   const slug = data.activeRound.team;
@@ -73,7 +55,7 @@ function pegaProximaRodada() {
   return { error: true };
 }
 
-function abreRodada(group) {
+const abreRodada = (group) => {
   const nextMatch = pegaProximaRodada();
   if (nextMatch.error) return client.sendMessage(group, 'Nenhuma rodada prevista! Abra um novo bolão');
   data.activeRound = ({
@@ -86,7 +68,7 @@ function abreRodada(group) {
   publicaRodada(group);
 }
 
-function publicaRodada(group) {
+const publicaRodada = (group) => {
   const today = new Date();
   const horaNow = today.getTime();
   const nextMatch = pegaProximaRodada();
@@ -101,7 +83,7 @@ function publicaRodada(group) {
   return client.sendMessage(group, texto);
 }
 
-function encerraPalpite(group) {
+const encerraPalpite = (group) => {
   const today = new Date();
   const encerramento = '⛔️⛔️ Tempo esgotado! ⛔️⛔️\n\n'
   data.activeRound.listening = false;
@@ -115,7 +97,7 @@ function encerraPalpite(group) {
   const programaFechamento = setTimeout(() => fechaRodada(), hoursInMs)
 }
 
-async function fechaRodada(repeat) {
+const fechaRodada = async (repeat) => {
   let response;
   const today = new Date();
   const grupo = data.activeRound.grupo + '@g.us';
@@ -173,7 +155,7 @@ async function fechaRodada(repeat) {
   return client.sendMessage(grupo, response);
 }
 
-async function getStats(matchId) {
+const getStats = async (matchId) => {
   const today = new Date();
   const match = data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][matchId];
   const homeTeam = match.homeTeam;
@@ -194,17 +176,7 @@ async function getStats(matchId) {
   }
 }
 
-const predictions_options = (url, params) => ({
-  method: 'GET',
-  url: process.env.FOOTBALL_API_URL + url,
-  params: params,
-  headers: {
-    'X-RapidAPI-Key': process.env.BOLAO_RAPIDAPI_KEY,
-    'X-RapidAPI-Host': process.env.FOOTBALL_API_HOST
-  }
-});
-
-async function predictions(group) {
+const predictions = async (group) => {
   const today = new Date();
   const nextMatch = data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId];
   if (nextMatch && nextMatch.predictions) return client.sendMessage(group, nextMatch.predictions);
@@ -216,30 +188,7 @@ async function predictions(group) {
     if (!getNextMatch.data.response) throw new Error('Não existem previsões na API');
     const nextMatchId = getNextMatch.data.response[0].fixture.id;
     const getPredictions = await axios.request(predictions_options('/predictions', { fixture: nextMatchId }));
-    const predicts = getPredictions.data.response[0];
-    const superStats = `👁 Stats pre-match para ${predicts.teams.home.name} x ${predicts.teams.away.name}
-
-👉 *Resultado*
-${predicts.predictions.winner.comment} de ${predicts.predictions.winner.name}
-
-🍀 *Super dica*
-${predicts.predictions.advice}
-
-⚽️ *Gol(s) marcado(s)*
-${predicts.teams.home.name}: ${predicts.predictions.goals.home}
-${predicts.teams.away.name}: ${predicts.predictions.goals.away}
-
-⚖️ *Chances*
-${predicts.h2h[0].teams.home.name}: ${predicts.predictions.percent.home}
-Empate: ${predicts.predictions.percent.draw}
-${predicts.h2h[0].teams.away.name}: ${predicts.predictions.percent.away}
-
-*Última partida*: ${predicts.h2h[0].teams.home.name} ${predicts.h2h[0].goals.home} x ${predicts.h2h[0].goals.home} ${predicts.h2h[0].teams.away.name}
-📍 ${predicts.h2h[0].league.name} ${predicts.h2h[0].league.season}
-📆 ${predicts.h2h[0].fixture.date}
-🏟 ${predicts.h2h[0].fixture.venue.name} (${predicts.h2h[0].fixture.venue.city})
-
-Participe do grupo TigreLOG ou adquira o bot para o seu grupo (devsakae.tech)`;
+    const superStats = formatPredicts(getPredictions.data.response[0]);
     data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId].predictions = superStats;
     writeData(data);
     // const abreProGrupo = setTimeout(() => client.sendMessage(group, superStats), 3 * 3600000)
@@ -252,7 +201,6 @@ Participe do grupo TigreLOG ou adquira o bot para o seu grupo (devsakae.tech)`;
 
 module.exports = {
   start,
-  fetchData,
   abreRodada,
   publicaRodada,
   fechaRodada,

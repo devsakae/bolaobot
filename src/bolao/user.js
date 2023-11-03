@@ -1,7 +1,9 @@
+const { default: axios } = require('axios');
 const data = require('./data/data.json');
 const { writeData } = require('./utils/fileHandler');
+const { sendAdmin } = require('./utils/functions');
 
-async function habilitaPalpite(info) {
+const habilitaPalpite = async (info) => {
   const grupo = info.m.from.split('@')[0];
   const today = new Date();
   const regex = /\d+\s*[x]\s*\d+/i
@@ -20,7 +22,7 @@ async function habilitaPalpite(info) {
   writeData(data);
 };
 
-function listaPalpites() {
+const listaPalpites = async () => {
   const today = new Date();
   const match = data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId];
   let resposta = `📢 Lista de palpites registrados para ${match.homeTeam} x ${match.awayTeam} - ${match.rodada}ª rodada ${match.torneio}\n`
@@ -28,7 +30,7 @@ function listaPalpites() {
   return resposta;
 };
 
-function getRanking(round) {
+const getRanking = (round) => {
   if (round) {
     const today = new Date();
     const historico = Object.values(data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()])
@@ -48,8 +50,12 @@ function getRanking(round) {
   return response;
 };
 
-module.exports = { 
+module.exports = {
   habilitaPalpite,
   listaPalpites,
   getRanking,
 }
+
+
+
+

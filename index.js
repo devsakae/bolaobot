@@ -1,10 +1,10 @@
 const { client, mongoclient } = require('./src/connections');
-const data = require('./src/bolao/data/data.json');
 const defaultdata = require('./src/bolao/data/example.json');
 const prompts = require('./src/bolao/data/prompts.json');
 const { bolao } = require('./src/bolao');
 const { quotes } = require('./src/quotes');
 const { predictions } = require('./src/bolao/admin');
+const { replyUser } = require('./src/jokes');
 
 (async () => {
   try {
@@ -42,9 +42,14 @@ client.on('message', async (m) => {
     m.body.startsWith('!delquote')
   ) await quotes(m)
   if (m.body.startsWith('!teste') && m.author === process.env.BOT_OWNER) {
-    const chat = m.getChat();
-    (await chat).sendStateTyping();
+    const chat = await m.getChat();
+    chat.sendStateTyping();
     return await predictions(m.from);
+  }
+  if (m.mentionedIds.includes(process.env.BOT_NUMBER)) {
+    const chat = await m.getChat();
+    chat.sendStateTyping();
+    return await replyUser(m);
   }
   await bolao(m);
 });

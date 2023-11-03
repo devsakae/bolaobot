@@ -2,6 +2,8 @@ const { db, tigrebot, client } = require('../connections');
 const { formatQuote, addStats, bestQuote } = require('./utils/functions');
 
 const quotes = async (m) => {
+  const chat = await m.getChat();
+  chat.sendStateTyping();
   if (m.body === '!quote') {
     const randomQuote = await db
       .collection('tigrelog')

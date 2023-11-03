@@ -1,11 +1,29 @@
+const { default: axios } = require("axios");
+const { client } = require("../../connections");
 
-function getCommand(raw) {
+const fetchData = async (url) => {
+  try {
+    const response = await axios.request({
+      method: 'GET',
+      url: url,
+      headers: {
+        'X-RapidAPI-Key': process.env.BOLAO_RAPIDAPI_KEY,
+        'X-RapidAPI-Host': process.env.BOLAO_RAPIDAPI_HOST,
+      },
+    });
+    return response.data;
+  } catch (err) {
+    return sendAdmin(err);
+  }
+}
+
+const getCommand = (raw) => {
   const divide = raw.split(' ');
   if (divide.length > 1) return raw.substring(divide[0].length).trimStart();
   return false;
 }
 
-function forMatch(match) {
+const forMatch = (match) => {
   const data = new Date(match.hora);
   return `🚨🚨 BOLÃO ABERTO! 🚨🚨
 
@@ -31,9 +49,49 @@ Boa sorte!
 
 Sistema de bolão ©️ devsakae.tech
 Id da partida: ${match.id}`;
-}
+};
+
+const formatPredicts = (predicts) => {
+  let response = `👁 Stats pre-match para ${predicts.teams.home.name} x ${predicts.teams.away.name}
+
+  👉 *Resultado*
+  ${predicts.predictions.winner.comment} de ${predicts.predictions.winner.name}
+  
+  🍀 *Super dica*
+  ${predicts.predictions.advice}
+  
+  ⚽️ *Gol(s) marcado(s)*
+  ${predicts.teams.home.name}: ${predicts.predictions.goals.home}
+  ${predicts.teams.away.name}: ${predicts.predictions.goals.away}
+  
+  📈 *Chances*
+  ${predicts.h2h[0].teams.home.name}: ${predicts.predictions.percent.home}
+  Empate: ${predicts.predictions.percent.draw}
+  ${predicts.h2h[0].teams.away.name}: ${predicts.predictions.percent.away}
+  
+  🗂 *Última(s) partida(s)*\n`;
+  predicts.h2h.forEach((match) => response += `\n${match.teams.home.name} ${match.goals.home} x ${match.goals.home} ${match.teams.away.name} (${match.league.name} ${match.league.season})`);
+  response += `\n\nParticipe do grupo TigreLOG ou adquira o bot para o seu grupo (devsakae.tech)`
+  return response;
+};
+
+const predictions_options = (url, params) => ({
+  method: 'GET',
+  url: process.env.FOOTBALL_API_URL + url,
+  params: params,
+  headers: {
+    'X-RapidAPI-Key': process.env.BOLAO_RAPIDAPI_KEY,
+    'X-RapidAPI-Host': process.env.FOOTBALL_API_HOST
+  }
+});
+
+const sendAdmin = (what) => client.sendMessage(process.env.BOT_OWNER, what);
 
 module.exports = {
+  fetchData,
+  sendAdmin,
   getCommand,
   forMatch,
+  formatPredicts,
+  predictions_options,
 }
