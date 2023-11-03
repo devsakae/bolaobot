@@ -1,7 +1,5 @@
-const { default: axios } = require('axios');
 const data = require('./data/data.json');
 const { writeData } = require('./utils/fileHandler');
-const { sendAdmin } = require('./utils/functions');
 
 const habilitaPalpite = async (info) => {
   const grupo = info.m.from.split('@')[0];

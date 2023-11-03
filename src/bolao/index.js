@@ -31,14 +31,14 @@ const bolao = async (m) => {
     const ranking = command ? getRanking(command) : getRanking();
     client.sendMessage(m.from, ranking);
   }
-  if (m.author === process.env.BOT_OWNER && m.body.startsWith('!stats')) {
-    console.log('Owner disse !stats')
-    const command = getCommand(m.body);
-    if (!command) return m.reply('Especifique o ID da partida');
-    const statsPack = await getStats(command);
-    if (statsPack.error) return m.reply('Erro buscando estatísticas da partida');
-    return client.sendMessage(m.from, statsPack);
-  };
+  // if (m.author === process.env.BOT_OWNER && m.body.startsWith('!stats')) {
+  //   console.log('Owner disse !stats')
+  //   const command = getCommand(m.body);
+  //   if (!command) return m.reply('Especifique o ID da partida');
+  //   const statsPack = await getStats(command);
+  //   if (statsPack.error) return m.reply('Erro buscando estatísticas da partida');
+  //   return client.sendMessage(m.from, statsPack);
+  // };
   if (m.author === process.env.BOT_OWNER && m.body.startsWith('!bolao')) {
     console.log('Owner disse !bolao')
     const command = getCommand(m.body);

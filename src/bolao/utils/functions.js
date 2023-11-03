@@ -1,21 +1,4 @@
-const { default: axios } = require("axios");
 const { client } = require("../../connections");
-
-const fetchData = async (url) => {
-  try {
-    const response = await axios.request({
-      method: 'GET',
-      url: url,
-      headers: {
-        'X-RapidAPI-Key': process.env.BOLAO_RAPIDAPI_KEY,
-        'X-RapidAPI-Host': process.env.BOLAO_RAPIDAPI_HOST,
-      },
-    });
-    return response.data;
-  } catch (err) {
-    return sendAdmin(err);
-  }
-}
 
 const getCommand = (raw) => {
   const divide = raw.split(' ');
@@ -52,7 +35,7 @@ Id da partida: ${match.id}`;
 };
 
 const formatPredicts = (predicts) => {
-  let response = `👁 Stats pre-match para ${predicts.teams.home.name} x ${predicts.teams.away.name}
+  let response = `👁 Stats pre-match para *${predicts.teams.home.name}* x *${predicts.teams.away.name}*:
 
 👉 *Resultado*
   ${predicts.predictions.winner.comment} de ${predicts.predictions.winner.name}
@@ -70,28 +53,18 @@ const formatPredicts = (predicts) => {
   ${predicts.teams.away.name}: ${predicts.predictions.percent.away}
 
 🗂 *Última(s) partida(s)*`;
-  predicts.h2h.forEach((match) => response += `\n ${match.teams.home.name} ${match.goals.home} x ${match.goals.home} ${match.teams.away.name} (${match.league.name} ${match.league.season})`);
-  response += `\n\nParticipe do grupo TigreLOG ou adquira o bot para o seu grupo (devsakae.tech)`
+  predicts.h2h.forEach((match) => {
+    const matchDate = new Date(match.fixture.timestamp * 1000);
+    response += `\n ${match.teams.home.name} ${match.goals.home} x ${match.goals.away} ${match.teams.away.name} (${matchDate.toDateString()} - ${match.league.name} ${match.league.season})`
+  });
   return response;
 };
-
-const predictions_options = (url, params) => ({
-  method: 'GET',
-  url: process.env.FOOTBALL_API_URL + url,
-  params: params,
-  headers: {
-    'X-RapidAPI-Key': process.env.BOLAO_RAPIDAPI_KEY,
-    'X-RapidAPI-Host': process.env.FOOTBALL_API_HOST
-  }
-});
 
 const sendAdmin = (what) => client.sendMessage(process.env.BOT_OWNER, what);
 
 module.exports = {
-  fetchData,
   sendAdmin,
   getCommand,
   forMatch,
   formatPredicts,
-  predictions_options,
 }

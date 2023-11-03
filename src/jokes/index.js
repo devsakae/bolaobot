@@ -1,6 +1,6 @@
 const { default: axios } = require('axios');
-const { sendAdmin } = require('../bolao/utils/functions');
 const { client } = require('../connections');
+const { fetchApi } = require('../../utils/fetchApi');
 
 let jokeLimit = false;
 
@@ -9,7 +9,7 @@ const replyUser = async (m) => {
     jokeLimit = true;
     const joke = await getJokes();
     m.reply(joke.setup);
-    const punchline = setTimeout(() => client.sendMessage(m.from, joke.punchline), 2000);
+    const punchline = setTimeout(() => client.sendMessage(m.from, joke.punchline), 13000);
     const liberaNovaJoke = setTimeout(() => jokeLimit = false, 5400000);
     return;
   };
@@ -25,23 +25,21 @@ const getUselessFact = async () => {
     });
     return uselessFact.data.text;
   } catch (err) {
-    return sendAdmin(err);
+    console.error(err)
+    return client.sendMessage(process.env.BOT_OWNER, err);
   }
 };
 
 const getJokes = async () => {
   try {
-    const joke = await axios.request({
-      method: 'GET',
+    const joke = await fetchApi({
       url: 'https://dad-jokes.p.rapidapi.com/random/joke',
-      headers: {
-        'X-RapidAPI-Key': process.env.BOLAO_RAPIDAPI_KEY,
-        'X-RapidAPI-Host': 'dad-jokes.p.rapidapi.com',
-      }
+      host: 'dad-jokes.p.rapidapi.com',
     });
-    return joke.data.body[0];
+    return joke.body[0];
   } catch (err) {
-    return sendAdmin(err);
+    console.error(err)
+    return client.sendMessage(process.env.BOT_OWNER, err);
   }
 }
 

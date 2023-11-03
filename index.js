@@ -7,8 +7,6 @@ const { predictions } = require('./src/bolao/admin');
 const { replyUser } = require('./src/jokes');
 const { narrador } = require('./src/narrador');
 
-let modoNarrador = false;
-
 (async () => {
   try {
     await mongoclient.connect();
@@ -53,13 +51,14 @@ client.on('message', async (m) => {
   
   // Módulo Predictions (usa: RapidApi/Football Api)
   if (
-    m.body.startsWith('!predict') &&
+    m.body.startsWith('!stats') &&
     (m.author === process.env.BOT_OWNER || m.from === process.env.BOT_OWNER)
-  ) 
-  await predictions(m.from);
+  )
+  return await predictions(m.from);
 
   // Módulo Jokes (usa: RapidApi/Dad Jokes, Useless Fact Api)
   if (m.mentionedIds.includes(process.env.BOT_NUMBER)) {
+    console.log('Alguém mencionou o bot no grupo');
     const chat = await m.getChat();
     chat.sendStateTyping();
     return await replyUser(m);
@@ -67,10 +66,8 @@ client.on('message', async (m) => {
 
   // Módulo narrador de jogo
   if (m.body.startsWith('!lancealance')) {
-    if (modoNarrador) return;
-    modoNarrador = true;
-    await narrador(m);
-    const backToNormal = setTimeout(() => modoNarrador = false, 3 * 3600000);
+    console.log('Alguém disse !lancealance');
+    return await narrador(m);
   }
 
   // Módulo Bolão (usa: RapidApi/Foot Api)

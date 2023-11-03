@@ -1,16 +1,16 @@
 const prompts = require('./data/prompts.json');
 const data = require('./data/data.json');
 const { client } = require('../connections');
-const axios = require('axios');
-const { writeData } = require('./utils/fileHandler');
-const { forMatch, formatPredicts, predictions_options, sendAdmin, fetchData } = require('./utils/functions');
 const { listaPalpites } = require('./user');
+const { writeData } = require('./utils/fileHandler');
+const { forMatch, formatPredicts, sendAdmin } = require('./utils/functions');
+const { fetchApi, fetchWithParams } = require('../../utils/fetchApi');
 
 const start = async (info) => {
   const team = data.teams[info.teamIdx];
   const grupo = info.to.split('@')[0];
   try {
-    const dataFromApi = await fetchData(process.env.BOLAO_RAPIDAPI_URL + '/team/' + team.id + '/matches/next/' + info.page);
+    const dataFromApi = await fetchApi({ url: process.env.FOOTAPI7_URL + '/team/' + team.id + '/matches/next/' + info.page, host: process.env.FOOTAPI7_HOST });
     if (dataFromApi.events.length < 1) return client.sendMessage(info.to, prompts.bolao.no_matches);
     const today = new Date();
     data[grupo] = ({
@@ -95,7 +95,7 @@ const encerraPalpite = (group) => {
   const hoursInMs = hours * 3600000;
   // const programaFechamento = setTimeout(() => fechaRodada(), 5000) // TEST
   const programaFechamento = setTimeout(() => fechaRodada(), hoursInMs);
-  const comunicaNovoModulo = setTimeout(() => client.sendMessage(group, 'Tem novidade na área! Ative o modo narrador escrevendo *!lancealance* no grupo 🐯'), 10 * 60000)
+  const comunicaNovoModulo = setTimeout(() => client.sendMessage(group, 'Ative o modo narrador escrevendo *!lancealance* após o início da partida 🐯'), 10 * 60000)
 }
 
 const fechaRodada = async (repeat) => {
@@ -103,15 +103,13 @@ const fechaRodada = async (repeat) => {
   const today = new Date();
   const grupo = data.activeRound.grupo + '@g.us';
   // const matchInfo = mockMatch; // TEST
-  const matchInfo = await fetchData(process.env.BOLAO_RAPIDAPI_URL + '/match/' + data.activeRound.matchId);
+  const matchInfo = await fetchApi({ url: process.env.FOOTAPI7_URL + '/match/' + data.activeRound.matchId, host: process.env.FOOTAPI7_HOST });
   if (matchInfo.event.status.code === 0) {
     clearTimeout();
-    if (repeat && repeat > 3) return sendAdmin('Erro ao buscar informações da partida.\n\nVerifique o endpoint ', process.env.BOLAO_RAPIDAPI_URL + '/match/' + data.activeRound.matchId);
+    if (repeat && repeat > 3) return sendAdmin('Erro ao buscar informações da partida.\n\nVerifique o endpoint ', process.env.FOOTAPI7_URL + '/match/' + data.activeRound.matchId);
     sendAdmin(`Match de id ${data.activeRound.matchId} não finalizada. Será realizada a tentativa #${repeat + 1} novamente em 30 minutos.`)
     return setTimeout(() => fechaRodada(repeat + 1), 1800000);
   }
-  // Verificar teamId para buscar highlights
-  // const matchHighlights = await fetchData(process.env.BOLAO_RAPIDAPI_URL + '/team/' + data.activeRound.teamId + '/media'); // Video highlights?
   const homeScore = matchInfo.event.homeScore.current;
   const awayScore = matchInfo.event.awayScore.current;
   const resultado = Number(matchInfo.event.homeScore.current) > Number(matchInfo.event.awayScore.current) ? 'V' : Number(matchInfo.event.homeScore.current) < Number(matchInfo.event.awayScore.current) ? 'D' : 'E';
@@ -162,7 +160,7 @@ const getStats = async (matchId) => {
   const homeTeam = match.homeTeam;
   const awayTeam = match.awayTeam;
   try {
-    const responseFromApi = await fetchData(process.env.BOLAO_RAPIDAPI_URL + '/match/' + matchId + '/statistics');
+    const responseFromApi = await fetchApi({ url: process.env.FOOTAPI7_URL + '/match/' + matchId + '/statistics', host: process.env.FOOTAPI7_HOST });
     const matchStats = responseFromApi.statistics.find((item) => item.period === 'ALL');
     let formatStats = `Estatísticas de ${homeTeam} x ${awayTeam}`;
     matchStats.groups.forEach((stat) => {
@@ -180,17 +178,20 @@ const getStats = async (matchId) => {
 const predictions = async (group) => {
   const today = new Date();
   const nextMatch = data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId];
-  if (nextMatch && nextMatch.predictions) return client.sendMessage(group, nextMatch.predictions);
+  if (nextMatch && nextMatch.predictions) return client.sendMessage(group, nextMatch.predictions.stats);
   try {
-    const getTeam = await axios.request(predictions_options('/teams', { name: data.activeRound.team }));
-    if (getTeam.data.response.length < 1) throw new Error('Nenhum time foi encontrado. Verifique as configurações de time.')
-    const teamId = getTeam.data.response[0].team.id;
-    const getNextMatch = await axios.request(predictions_options('/fixtures', { team: teamId, next: '1' }));
-    if (!getNextMatch.data.response) throw new Error('Não existem previsões na API');
-    const nextMatchId = getNextMatch.data.response[0].fixture.id;
-    const getPredictions = await axios.request(predictions_options('/predictions', { fixture: nextMatchId }));
-    const superStats = formatPredicts(getPredictions.data.response[0]);
-    data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId].predictions = superStats;
+    const getTeam = await fetchWithParams({ url: process.env.FOOTBALL_API_URL + '/teams', host: process.env.FOOTBALL_API_HOST, params: { name: data.activeRound.team } });
+    // const getTeam = await axios.request(predictions_options('/teams', { name: data.activeRound.team }));
+    if (getTeam.response.length < 1) throw new Error('Nenhum time foi encontrado. Verifique as configurações de time.')
+    const teamId = getTeam.response[0].team.id;
+    const getNextMatch = await fetchWithParams({ url: process.env.FOOTBALL_API_URL + '/fixtures', host: process.env.FOOTBALL_API_HOST, params: { team: teamId, next: '1' } });
+    // const getNextMatch = await axios.request(predictions_options('/fixtures', { team: teamId, next: '1' }));
+    if (!getNextMatch.response) throw new Error('Não existem previsões na API');
+    const nextMatchId = getNextMatch.response[0].fixture.id;
+    const getPredictions = await fetchWithParams({ url: process.env.FOOTBALL_API_URL + '/predictions', host: process.env.FOOTBALL_API_HOST, params: { fixture: nextMatchId } });
+    // const getPredictions = await axios.request(predictions_options('/predictions', { fixture: nextMatchId }));
+    const superStats = formatPredicts(getPredictions.response[0]);
+    data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId].predictions = { idMatch: nextMatchId, stats: superStats };
     writeData(data);
     return client.sendMessage(group, superStats);
   } catch (err) {

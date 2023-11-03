@@ -1,33 +1,20 @@
-const { default: axios } = require('axios');
 const data = require('../bolao/data/data.json');
 const { client } = require('../connections');
 const { formatLance } = require('./utils/functions');
+const { fetchWithParams } = require('../../utils/fetchApi');
 
-const matchId = 1053247 // TEST
-
+let modoNarrador = false;
 let matchEvents = [];
 
-const fetchApi = async (matchId) => {
-  const response = await axios.request({
-    method: 'GET',
-    url: process.env.FOOTBALL_API_URL + '/fixtures',
-    params: { id: matchId },
-    headers: {
-      'X-RapidAPI-Key': process.env.BOLAO_RAPIDAPI_KEY,
-      'X-RapidAPI-Host': process.env.FOOTBALL_API_HOST
-    }
-  });
-  return response.data.response[0];
-}
-
-const publicaLance = async (grupo) => {
-  await fetchApi(matchId)
-  .then((res) => {
-    const { events } = res;
+const publicaLance = async (m, chat) => {
+  await fetchWithParams({ url: process.env.FOOTBALL_API_URL + '/fixtures', host: process.env.FOOTBALL_API_HOST, params: { id: data.activeRound.matchId } })
+  .then(({ response }) => {
+    const { events } = response[0];
+    const placar = `${response[0].teams.home.name} ${response[0].goals.home} x ${response[0].goals.away} ${response[0].teams.away.name}`
     if (events.length === matchEvents.length) return;
-    if (res.fixture.status.short === 'FT') {
+    if (response[0].fixture.status.short === 'FT') {
       () => clearInterval();
-      client.sendMessage(grupo, `🛑 *Fim de jogo*❗️ Resultado final: ${res.teams.home.name} ${res.goals.home} x ${res.goals.away} ${res.teams.away.name}`);
+      client.sendMessage(m.from, `🛑 *Fim de jogo*! Resultado final: ${placar}`);
       matchEvents = [];
       return console.log('Partida finalizada');
     }
@@ -35,28 +22,38 @@ const publicaLance = async (grupo) => {
     matchEvents = events;
     let historico = 'Muita coisa acontecendo!\n';
     if (newEvents < -1) {
+      if (events.some((ev) => ev.type === 'Goal')) chat.setSubject(placar);
       events.slice(newEvents).forEach((ev) => historico += `\n${formatLance(ev)}`);
-      return client.sendMessage(grupo, historico);
+      return client.sendMessage(m.from, historico);
     }
     let ultimoLance = formatLance(events.at(-1));
-    return client.sendMessage(grupo, ultimoLance);
+    if ((newEvents > -2) && events.at(-1).type === 'Goal') chat.setSubject(placar);
+    return client.sendMessage(m.from, ultimoLance);
   })
   .catch((err) => console.error('ERRO:', err));
 }
 
 const narrador = async (m) => {
+  const chat = await client.getChatById(m.from);
+  if (modoNarrador) return;
+  const today = new Date();
+  const matchObj = data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId];
+  if (today.getTime() < matchObj.hora || today.getTime() > (matchObj.hora + (110 * 60000))) return m.reply('Modo narrador só funciona *durante* a partida 😔');
+  modoNarrador = true;
+  const backToNormal = setTimeout(() => modoNarrador = false, 24 * 3600000);
   let historico = 'Resumo do jogo até o momento'
-  let placar = '';
-  await fetchApi(matchId).then((res) => {
-    historico += ` (${res.fixture.status.elapsed}' - ${res.fixture.status.long})\n`
-    matchEvents = res.events;
-    placar = `${res.teams.home.name} ${res.goals.home} x ${res.goals.away} ${res.teams.away.name}`
-    res.events.forEach((ev) => historico += `\n${formatLance(ev)}`)
-  });
-  client.sendMessage(m.from, `🎙 Bem amigos do grupo! Acompanhe comigo os melhores lances de ${placar}!`)
+  await fetchWithParams({ url: process.env.FOOTBALL_API_URL + '/fixtures', host: process.env.FOOTBALL_API_HOST, params: { id: data.activeRound.matchId } })
+  .then(({ response }) => {
+    const placar = `${response[0].teams.home.name} ${response[0].goals.home} x ${response[0].goals.away} ${response[0].teams.away.name}`;
+    chat.setSubject(placar);
+    historico += ` (${response[0].fixture.status.elapsed}' - ${response[0].fixture.status.long})\n`
+    matchEvents = response[0].events;
+    client.sendMessage(m.from, `🎙 Bem amigos do grupo! Acompanhe comigo os melhores lances de ${placar}!`)
+    response[0].events.forEach((ev) => historico += `\n${formatLance(ev)}`)
+  })
+  .catch((err) => console.error(err));
   client.sendMessage(m.from, historico);
-  const timerDeNarracao = setInterval(() => publicaLance(m.from), 180000); // TEST
-  // const timerDeNarracao = setInterval(() => publicaLance(m.from), 60000);
+  const timerDeNarracao = setInterval(() => publicaLance(m, chat), 60000);
   const apitoFinal = setTimeout(() => {
     console.log('Encerramento programado');
     client.sendMessage(m.from, 'Modo narrador finalizado.');
