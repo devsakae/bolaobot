@@ -94,7 +94,8 @@ const encerraPalpite = (group) => {
   const hours = 8;  // Prazo (em horas) para buscar o resultado da partida após o encerramento dos palpites
   const hoursInMs = hours * 3600000;
   // const programaFechamento = setTimeout(() => fechaRodada(), 5000) // TEST
-  const programaFechamento = setTimeout(() => fechaRodada(), hoursInMs)
+  const programaFechamento = setTimeout(() => fechaRodada(), hoursInMs);
+  const comunicaNovoModulo = setTimeout(() => client.sendMessage(group, 'Tem novidade na área! Ative o modo narrador escrevendo *!lancealance* no grupo 🐯'), 10 * 60000)
 }
 
 const fechaRodada = async (repeat) => {

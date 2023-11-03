@@ -5,6 +5,9 @@ const { bolao } = require('./src/bolao');
 const { quotes } = require('./src/quotes');
 const { predictions } = require('./src/bolao/admin');
 const { replyUser } = require('./src/jokes');
+const { narrador } = require('./src/narrador');
+
+let modoNarrador = false;
 
 (async () => {
   try {
@@ -15,12 +18,16 @@ const { replyUser } = require('./src/jokes');
       .then((response) => {
         if (response) console.log('\n✔ Conexão com MongoDB');
         // MÓDULO BOLÃO - INÍCIO //
-        if (!process.env.BOT_OWNER) return console.error(prompts.admin.no_owner);
-        console.log('✔ Telefone do administrador:', process.env.BOT_OWNER.slice(2, -5))
+        if (!process.env.BOT_OWNER)
+          return console.error(prompts.admin.no_owner);
+        console.log(
+          '✔ Telefone do administrador:',
+          process.env.BOT_OWNER.slice(2, -5),
+        );
         console.log('\nTimes liberados para disputa do bolão:');
-        let allTeams = defaultdata.teams[0].name
+        let allTeams = defaultdata.teams[0].name;
         defaultdata.teams.shift();
-        defaultdata.teams.forEach((team) => allTeams += (' | ' + team.name));
+        defaultdata.teams.forEach((team) => (allTeams += ' | ' + team.name));
         console.log(allTeams);
         // MÓDULO BOLÃO - FIM //
       });
@@ -33,6 +40,7 @@ const { replyUser } = require('./src/jokes');
 // pm2 start npm --name "BolaoBot" -- start && pm2 monit
 
 client.on('message', async (m) => {
+  // Módulo Quotes (usa: MongoDB)
   if (
     m.body.startsWith('!quote') ||
     m.body.startsWith('!addquote') ||
@@ -40,16 +48,31 @@ client.on('message', async (m) => {
     m.body.startsWith('!autor') ||
     m.body.startsWith('!data') ||
     m.body.startsWith('!delquote')
-  ) await quotes(m);
-  if (m.body.startsWith('!predict') && (m.author === process.env.BOT_OWNER || m.from === process.env.BOT_OWNER)) {
-    const chat = await m.getChat();
-    chat.sendStateTyping();
-    return await predictions(m.from);
-  }
+  ) 
+  await quotes(m);
+  
+  // Módulo Predictions (usa: RapidApi/Football Api)
+  if (
+    m.body.startsWith('!predict') &&
+    (m.author === process.env.BOT_OWNER || m.from === process.env.BOT_OWNER)
+  ) 
+  await predictions(m.from);
+
+  // Módulo Jokes (usa: RapidApi/Dad Jokes, Useless Fact Api)
   if (m.mentionedIds.includes(process.env.BOT_NUMBER)) {
     const chat = await m.getChat();
     chat.sendStateTyping();
     return await replyUser(m);
+  };
+
+  // Módulo narrador de jogo
+  if (m.body.startsWith('!lancealance')) {
+    if (modoNarrador) return;
+    modoNarrador = true;
+    await narrador(m);
+    const backToNormal = setTimeout(() => modoNarrador = false, 3 * 3600000);
   }
+
+  // Módulo Bolão (usa: RapidApi/Foot Api)
   await bolao(m);
 });
