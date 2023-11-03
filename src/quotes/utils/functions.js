@@ -1,3 +1,12 @@
+const calculaIdade = (date) => {
+  const formattedDate = date.split("/")
+  const birthdateTimeStamp = new Date(formattedDate[2], formattedDate[1], formattedDate[0])
+  const currentDate = new Date().getTime();
+  const difference = currentDate - birthdateTimeStamp;
+  const currentAge = Math.floor(difference / 31557600000)
+  return currentAge
+};
+
 const formatQuote = (quote) => {
   return `"${quote.quote}"
 
@@ -15,10 +24,8 @@ const addStats = (array) => {
     const { stats } = array[0];
     return `O CRAQUE, GÊNIO, LENDÁRIO *${array[0].nickname.toUpperCase()}* já jogou no Tigre! 🐯
 
+${array[0].name} (${array[0].position}, ${calculaIdade(array[0].birthday)} anos)
 ${array[0].period}
-Nome completo: ${array[0].name} (${array[0].position})
-Nascimento: ${array[0].birthday}
-Em ${thisYear} ele completou ${Number(thisYear) - Number(array[0].birthday.substring(6))} anos
 
 🏟 ${stats.matches} partidas
 ⚽️ ${stats.goals} gols
