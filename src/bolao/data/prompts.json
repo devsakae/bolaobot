@@ -9,6 +9,8 @@
   "bolao": {
     "no_team": "Nenhum time cadastrado",
     "no_matches": "Nenhuma partida encontrada! Verifique com o administrador.",
-    "start_header": "🚨🚨 Bolão aberto para"
+    "no_round": "Nenhuma rodada programada. Verifique com o administrador.",
+    "start_header": "🚨🚨 Bolão aberto para",
+    "active_bolao": "Já existe um bolão ativo para este time."
   }
 }
