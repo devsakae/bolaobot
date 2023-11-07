@@ -8,6 +8,7 @@ const habilitaPalpite = (info) => {
   const homeScore = info.m.body.match(regex)[0].match(/^\d+/i);
   const awayScore = info.m.body.match(regex)[0].match(/\d+$/i);
   const palpiPack = ({
+    date: today.toLocaleString('pt-br'),
     userId: info.m.author,
     userName: info.user,
     homeScore: Number(homeScore),
@@ -24,19 +25,21 @@ const listaPalpites = (grupo) => {
   const today = new Date();
   const match = data[grupo][data[grupo].activeRound.team.slug][today.getFullYear()][data[grupo].activeRound.matchId];
   let resposta = `📢 Lista de palpites registrados para ${match.homeTeam} x ${match.awayTeam} - ${match.rodada}ª rodada ${match.torneio}\n`
-  match.palpites.forEach((palpite) => resposta += `\n▪ ${palpite.homeScore} x ${palpite.awayScore} (${palpite.userName})`);
+  match.palpites.forEach((palpite) => resposta += `\n▪ ${palpite.homeScore} x ${palpite.awayScore} - ${palpite.userName} ${palpite.date ? `em ${palpite.date}` : ''}`);
   return resposta;
 };
 
 const getRanking = (grupo) => {
-  data[grupo].ranking.sort((a, b) => a.pontos < b.pontos ? 1 : (a.pontos > b.pontos) ? -1 : 0);
+  data[grupo][data[grupo].activeRound.team.slug].ranking.sort((a, b) => a.pontos < b.pontos ? 1 : (a.pontos > b.pontos) ? -1 : 0);
   writeData(data);
-  let response = `🏆 RANKING DO BOLÃO 🏆 \n`;
+  let response = `🏆🏆 *Ranking do Bolão* 🏆🏆\n`;
   data[grupo][data[grupo].activeRound.team.slug].ranking.forEach((pos, idx) => {
-    const medal = (idx === 0) ? '🥇 ' : (idx === 1) ? '🥈 ' : (idx === 2) ? '🥉 ' : `#${idx + 1} `;
+    if (idx === 3) response += '\n🔝 🔝 🔝 🔝 🔝 🔝 🔝 🔝 🔝 🔝 🔝 🔝'
+    if (pos.pontos < 1) response += '\n\nCertificado de participação no bolão:\n'
+    const medal = (idx === 0) ? '🥇 ' : (idx === 1) ? '🥈 ' : (idx === 2) ? '🥉 ' : `${idx + 1}º - `;
     (pos.pontos > 0)
-      ? response += `\n${medal}${pos.usuario} com ${pos.pontos} ponto(s)`
-      : response += `\n👎 ${pos.usuario} (sem pontuação)`
+      ? response += `\n${medal}${pos.usuario} [${pos.pontos} ponto${pos.pontos > 1 ? 's' : ''}]`
+      : response += `\n🎗 ${pos.usuario}`
   });
   return response;
 };

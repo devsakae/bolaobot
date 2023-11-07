@@ -7,7 +7,7 @@ const { forMatch, formatPredicts, sendAdmin } = require('./utils/functions');
 const { fetchWithParams } = require('../../utils/fetchApi');
 
 const start = (info) => {
-  if (Object.hasOwn(data[info.grupo], 'activeRound')) return client.sendMessage(info.grupo, `Este grupo já tem um bolão ativo dos jogos de ${info.team.name}.`)
+  if (Object.hasOwn(data, info.grupo) && Object.hasOwn(data[info.grupo], 'activeRound')) return client.sendMessage(info.grupo, `Este grupo já tem um bolão ativo dos jogos de ${info.team.name}.`)
   if (!Object.hasOwn(data, info.grupo)) {
     data[info.grupo] = {
       activeRound: {
@@ -15,8 +15,8 @@ const start = (info) => {
         started: new Date(),
       },
     };
+    writeData(data);
   }
-  writeData(data);
   abreRodada(info.grupo);
   return client.sendMessage(
     info.grupo,
@@ -123,13 +123,13 @@ const encerraPalpite = (grupo) => {
   const encerramento = '⛔️⛔️ Tempo esgotado! ⛔️⛔️\n\n';
   data[grupo].activeRound.listening = false;
   writeData(data);
-  const listaDePalpites = listaPalpites(grupo);
   if (
     data[grupo][data[grupo].activeRound.team.slug][today.getFullYear()][
       data[grupo].activeRound.matchId
     ].palpites.length < 1
-  )
-    return client.sendMessage(grupo, 'Nenhum palpite cadastrado...');
+    )
+    return client.sendMessage(grupo, 'Ninguém palpitou nessa rodada!');
+  const listaDePalpites = listaPalpites(grupo);
   client.sendMessage(grupo, encerramento + listaDePalpites);
   const hours = 8; // Prazo (em horas) para buscar o resultado da partida após o encerramento dos palpites
   const hoursInMs = hours * 3600000;
@@ -191,12 +191,12 @@ const fechaRodada = async (grupo) => {
         (player) => player.id === p.userId,
       );
       playerIdx < 0
-        ? data.ranking.push({
+        ? data[grupo][data[grupo].activeRound.team.slug].ranking.push({
             id: p.userId,
             usuario: p.userName,
             pontos: pontos,
           })
-        : (data.ranking[playerIdx].pontos += pontos);
+        : (data[grupo][data[grupo].activeRound.team.slug].ranking[playerIdx].pontos += pontos);
       return { ...p, pontos: pontos };
     })
     .sort((a, b) => (a.pontos < b.pontos ? 1 : a.pontos > b.pontos ? -1 : 0));
@@ -216,14 +216,14 @@ const fechaRodada = async (grupo) => {
     const medal =
       idx === 0 ? '🥇 ' : idx === 1 ? '🥈 ' : idx === 2 ? '🥉 ' : '';
     pos.pontos > 0
-      ? (response += `\n${medal}${pos.userName} fez ${pos.pontos} ponto(s) com o palpite ${pos.homeScore} x ${pos.awayScore}`)
+      ? (response += `\n${medal}${pos.userName} fez ${pos.pontos} ponto(s) com o palpite ${pos.homeScore} x ${pos.awayScore} em ${pos.data}`)
       : (response += `\n${pos.userName} zerou com o palpite ${pos.homeScore} x ${pos.awayScore}`);
   });
   const nextMatch = pegaProximaRodada();
   if (nextMatch.error)
     return client.sendMessage(
       grupo,
-      'Bolão finalizado! Sem mais rodadas para disputa. Veja como ficou o ranking escrevendo !ranking no canal (admin only)',
+      prompts.bolao.encerra_bolao,
     );
   const calculatedTimeout = nextMatch.hora - 115200000 - today.getTime(); // Abre nova rodada 36 horas antes do jogo
   const proximaRodada = setTimeout(() => abreRodada(), calculatedTimeout);

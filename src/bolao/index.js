@@ -18,7 +18,7 @@ const bolao = async (m) => {
         const check = habilitaPalpite({ m: m, user: sender.pushname || sender.name, matchId: matchId })
         return check.error ? m.reply('Esse palpite não é válido') : m.react('🎟');
       }
-      m.reply('Essa rodada não está ativa!');
+      return m.reply('Essa rodada não está ativa!');
     }
     return;
   }
@@ -27,7 +27,7 @@ const bolao = async (m) => {
     const palpiteList = listaPalpites(m.from);
     return client.sendMessage(m.from, palpiteList);
   };
-  if (m.author === process.env.BOT_OWNER && m.body.startsWith('!ranking')) {
+  if (m.body.startsWith('!ranking')) {
     console.info('Acessando comando !ranking');
     const ranking = getRanking(m.from)
     client.sendMessage(m.from, ranking);
@@ -37,9 +37,13 @@ const bolao = async (m) => {
     const command = getCommand(m.body);
     const grupo = m.from.split('@')[0];
     if (command && command.startsWith('start')) {
-      const searchedTeam = command.substring(5).trimStart()
-      const team = data.teams.find((team) => team.name === searchedTeam || team.slug === searchedTeam);
-      if (!team) return m.reply(prompts.bolao.no_team);
+      const searchedTeam = new RegExp(command.substring(5).trimStart(), "gi");
+      const team = data.teams.find((team) => team.name.match(searchedTeam) || team.slug.match(searchedTeam));
+      if (!team) {
+        let teamList = prompts.bolao.no_team
+        data.teams.forEach((t) => teamList += `\n▪ ${t.name}`)
+        return m.reply(teamList);
+      }
       if (data[grupo] && data[grupo][team.slug]) return m.reply(prompts.bolao.active_bolao);
       return await start({ grupo: m.from, team: team });
     };
@@ -48,8 +52,10 @@ const bolao = async (m) => {
   }
   if (m.author === process.env.BOT_OWNER && m.body.startsWith("!restart")) {
     console.info('Acessando comando !restart');
-    if (data[m.from].activeRound.listening) return publicaRodada({ grupo: m.from, match: data[m.from].activeRound.matchId });
     const today = new Date();
+    if (data[m.from].activeRound.listening) {
+      return publicaRodada({ grupo: m.from, match: data[m.from][data[m.from].activeRound.team.slug][today.getFullYear()][data[m.from].activeRound.matchId] });
+    }
     const nextMatch = await pegaProximaRodada(m.from);
     if (nextMatch.error) return client.sendMessage(m.author, 'Bolão finalizado! Sem mais rodadas para disputa');
     const calculatedTimeout = (nextMatch.hora - 115200000) - today.getTime(); // Abre nova rodada 36 horas antes do jogo
