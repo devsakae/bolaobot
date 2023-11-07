@@ -4,201 +4,281 @@ const { client } = require('../connections');
 const { listaPalpites } = require('./user');
 const { writeData } = require('./utils/fileHandler');
 const { forMatch, formatPredicts, sendAdmin } = require('./utils/functions');
-const { fetchApi, fetchWithParams } = require('../../utils/fetchApi');
+const { fetchWithParams } = require('../../utils/fetchApi');
 
-const start = async (info) => {
-  const team = data.teams[info.teamIdx];
-  const grupo = info.to.split('@')[0];
+const start = (info) => {
+  if (Object.hasOwn(data, info.grupo) && Object.hasOwn(data[info.grupo], 'activeRound')) return client.sendMessage(info.grupo, `Este grupo já tem um bolão ativo dos jogos de ${info.team.name}.`)
+  if (!Object.hasOwn(data, info.grupo)) {
+    data[info.grupo] = {
+      activeRound: {
+        team: info.team,
+        started: new Date(),
+      },
+    };
+    writeData(data);
+  }
+  abreRodada(info.grupo);
+  return client.sendMessage(
+    info.grupo,
+    `Bolão de jogos do *${info.team.name}* iniciado.`,
+  );
+};
+
+const pegaProximaRodada = async (grupo) => {
   try {
-    const dataFromApi = await fetchApi({ url: process.env.FOOTAPI7_URL + '/team/' + team.id + '/matches/next/' + info.page, host: process.env.FOOTAPI7_HOST });
-    if (dataFromApi.events.length < 1) return client.sendMessage(info.to, prompts.bolao.no_matches);
+    const getNextMatches = await fetchWithParams({
+      url: process.env.FOOTBALL_API_URL + '/fixtures',
+      host: process.env.FOOTBALL_API_HOST,
+      params: {
+        team: data[grupo].activeRound.team.id,
+        next: 3,
+      },
+    });
+    if (getNextMatches.response.length < 1)
+      return client.sendMessage(grupo, prompts.bolao.no_matches);
     const today = new Date();
-    data[grupo] = ({
-      [team.slug]: {
-        [today.getFullYear()]: {}
-      }
-    });
-    dataFromApi.events.forEach((event) => {
-      data[grupo][team.slug][today.getFullYear()][event.id] = ({
-        id: event.id,
-        homeTeam: event.homeTeam.name,
-        awayTeam: event.awayTeam.name,
-        hora: Number(event.startTimestamp) * 1000,
-        torneio: event.tournament.name,
-        rodada: Number(event.roundInfo.round),
+    Object.hasOwn(data, grupo) &&
+    Object.hasOwn(grupo, 'activeRound') &&
+    Object.hasOwn(data[grupo].activeRound, 'team')
+      ? (data[grupo] = {
+          ...data[grupo],
+          [data[grupo].activeRound.team.slug]: {
+            ...data[grupo][data[grupo].activeRound.team.slug],
+            [today.getFullYear()]: {
+              ...data[grupo][data[grupo].activeRound.team.slug][
+                today.getFullYear()
+              ],
+            },
+          },
+        })
+      : (data[grupo] = {
+          ...data[grupo],
+          [data[grupo].activeRound.team.slug]: {
+            [today.getFullYear()]: {},
+          },
+        });
+    let singleMatch;
+    getNextMatches.response.forEach((event, idx) => {
+      const matchPack = {
+        id: event.fixture.id,
+        homeTeam: event.teams.home.name,
+        awayTeam: event.teams.away.name,
+        hora: Number(event.fixture.timestamp) * 1000,
+        torneio: event.league.name,
+        torneioId: event.league.id,
+        estadio: event.fixture.venue.name,
+        status: event.fixture.status,
+        rodada: event.league.round.match(/\d+$/gi)[0],
         palpites: [],
-      })
-    });
-    data.activeRound = ({
-      grupo: grupo,
-      team: team.slug,
-      teamId: team.id
+      };
+      if (idx === 0) singleMatch = matchPack;
+      data[grupo][data[grupo].activeRound.team.slug][today.getFullYear()][
+        event.fixture.id
+      ] = matchPack;
     });
     writeData(data);
-    while (dataFromApi.hasNextPage) return start({ ...info, page: info.page + 1 });
-    abreRodada(info.to);
-    return client.sendMessage(info.to, `👉 Bolão ${team.name} criado com sucesso!\n\n*${dataFromApi.events.length}* rodadas programadas para disputa`);
+    return singleMatch;
   } catch (err) {
-    return sendAdmin(err);
+    console.error(err);
+    return { error: true };
   }
-}
+};
 
-const pegaProximaRodada = () => {
-  const today = new Date();
-  const grupo = data.activeRound.grupo;
-  const slug = data.activeRound.team;
-  const ano = today.getFullYear();
-  const horaNow = today.getTime();
-  for (let key in data[grupo][slug][ano]) {
-    if (data[grupo][slug][ano][key].hora > horaNow) return data[grupo][slug][ano][key];
-  };
-  return { error: true };
-}
-
-const abreRodada = (group) => {
-  const nextMatch = pegaProximaRodada();
-  if (nextMatch.error) return client.sendMessage(group, 'Nenhuma rodada prevista! Abra um novo bolão');
-  data.activeRound = ({
-    ...data.activeRound,
+const abreRodada = async (grupo) => {
+  const nextMatch = await pegaProximaRodada(grupo);
+  if (nextMatch.error) return client.sendMessage(grupo, prompts.bolao.no_round);
+  data[grupo].activeRound = {
+    ...data[grupo].activeRound,
     listening: true,
     matchId: nextMatch.id,
     palpiteiros: [],
-  });
+  };
   writeData(data);
-  publicaRodada(group);
-}
+  publicaRodada({ grupo: grupo, match: nextMatch });
+};
 
-const publicaRodada = (group) => {
+const publicaRodada = ({ grupo, match }) => {
   const today = new Date();
   const horaNow = today.getTime();
-  const nextMatch = pegaProximaRodada();
-  const texto = forMatch(nextMatch);
+  const texto = forMatch(match);
   const limiteDeTempoParaPalpitesEmMinutos = 10; // Fazer configurável
   const limiteConvertidoEmMs = limiteDeTempoParaPalpitesEmMinutos * 60000;
-  const timeoutInMs = nextMatch.hora - horaNow - limiteConvertidoEmMs;
+  const timeoutInMs = match.hora - horaNow - limiteConvertidoEmMs;
   () => clearTimeout(encerramentoProgramado);
-  const encerramentoProgramado = setTimeout(() => encerraPalpite(group), timeoutInMs)
-  sendAdmin(`Rodada reaberta, com término previsto em ${new Date(horaNow + timeoutInMs).toLocaleString('pt-br')}`)
-  predictions();
-  return client.sendMessage(group, texto);
-}
+  const encerramentoProgramado = setTimeout(
+    () => encerraPalpite(grupo),
+    timeoutInMs,
+  );
+  sendAdmin(
+    `Rodada aberta! Previsão de término em ${new Date(
+      horaNow + timeoutInMs,
+    ).toLocaleString('pt-br')}`,
+  );
+  // predictions();
+  return client.sendMessage(grupo, texto);
+};
 
-const encerraPalpite = (group) => {
+const encerraPalpite = (grupo) => {
   const today = new Date();
-  const encerramento = '⛔️⛔️ Tempo esgotado! ⛔️⛔️\n\n'
-  data.activeRound.listening = false;
+  const encerramento = '⛔️⛔️ Tempo esgotado! ⛔️⛔️\n\n';
+  data[grupo].activeRound.listening = false;
   writeData(data);
-  const listaDePalpites = listaPalpites();
-  if (data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId].palpites.length < 1) return client.sendMessage(group, 'Nenhum palpite foi cadastrado!');
-  client.sendMessage(group, encerramento + listaDePalpites);
-  const hours = 8;  // Prazo (em horas) para buscar o resultado da partida após o encerramento dos palpites
+  if (
+    data[grupo][data[grupo].activeRound.team.slug][today.getFullYear()][
+      data[grupo].activeRound.matchId
+    ].palpites.length < 1
+    )
+    return client.sendMessage(grupo, 'Ninguém palpitou nessa rodada!');
+  const listaDePalpites = listaPalpites(grupo);
+  client.sendMessage(grupo, encerramento + listaDePalpites);
+  const hours = 8; // Prazo (em horas) para buscar o resultado da partida após o encerramento dos palpites
   const hoursInMs = hours * 3600000;
-  // const programaFechamento = setTimeout(() => fechaRodada(), 5000) // TEST
-  const programaFechamento = setTimeout(() => fechaRodada(), hoursInMs);
-  const comunicaNovoModulo = setTimeout(() => client.sendMessage(group, 'Ative o modo narrador escrevendo *!lancealance* após o início da partida 🐯'), 10 * 60000)
+  // const programaFechamento = setTimeout(() => fechaRodada(grupo), 5000) // TEST
+  const programaFechamento = setTimeout(() => fechaRodada(grupo), hoursInMs);
+  const comunicaNovoModulo = setTimeout(
+    () =>
+      client.sendMessage(
+        grupo,
+        'Ative o modo narrador escrevendo *!lancealance* após o início da partida 🐯',
+      ),
+    10 * 60000,
+  );
+};
+
+const buscaResultado = async ({ grupo, tentativa }) => {
+  if (tentativa > 5) return client.sendMessage(process.env.BOT_OWNER, 'Erro ao buscar resultado da partida. Verifique a API.');
+  const matchInfo = await fetchWithParams({
+    url: process.env.FOOTBALL_API_URL + '/fixtures',
+    host: process.env.FOOTBALL_API_HOST,
+    params: {
+      id: data[grupo].activeRound.matchId,
+    },
+  });
+  if ((!matchInfo || matchInfo.response[0].fixture.status.short !== 'FT')) {
+    console.error('Fetch não realizado, será feita a tentativa n.', tentativa);
+    const fetchAgain = setTimeout(() => fechaRodada({ grupo: grupo, tentativa: tentativa + 1 }), 45 * 60000);
+    if (tentativa === 1) return { error: true }
+    return;
+  }
+  return matchInfo
 }
 
-const fechaRodada = async (repeat) => {
+const fechaRodada = async (grupo) => {
+  const matchInfo = await buscaResultado({ grupo: grupo, tentativa: 1 })
+  if (matchInfo.error) return client.sendMessage(
+    grupo,
+    'Erro ao buscar resultado final da partida ' + data[grupo].activeRound.matchId + '. Será feita nova busca em alguns minutos.'
+  );
   let response;
   const today = new Date();
-  const grupo = data.activeRound.grupo + '@g.us';
-  // const matchInfo = mockMatch; // TEST
-  const matchInfo = await fetchApi({ url: process.env.FOOTAPI7_URL + '/match/' + data.activeRound.matchId, host: process.env.FOOTAPI7_HOST });
-  if (matchInfo.event.status.code === 0) {
-    clearTimeout();
-    if (repeat && repeat > 3) return sendAdmin('Erro ao buscar informações da partida.\n\nVerifique o endpoint ', process.env.FOOTAPI7_URL + '/match/' + data.activeRound.matchId);
-    sendAdmin(`Match de id ${data.activeRound.matchId} não finalizada. Será realizada a tentativa #${repeat + 1} novamente em 30 minutos.`)
-    return setTimeout(() => fechaRodada(repeat + 1), 1800000);
-  }
-  const homeScore = matchInfo.event.homeScore.current;
-  const awayScore = matchInfo.event.awayScore.current;
-  const resultado = Number(matchInfo.event.homeScore.current) > Number(matchInfo.event.awayScore.current) ? 'V' : Number(matchInfo.event.homeScore.current) < Number(matchInfo.event.awayScore.current) ? 'D' : 'E';
-  const rankingDaRodada = data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId].palpites.map((p) => {
-    let pontos = 0;
-    if (p.resultado === resultado) pontos = 1;
-    if (p.resultado === resultado && (p.homeScore === homeScore || p.awayScore === awayScore)) pontos = 2;
-    if (p.homeScore === homeScore && p.awayScore === awayScore) pontos = 3;
-    const playerIdx = data.ranking.findIndex((player) => player.id === p.userId);
-    (playerIdx < 0)
-      ? data.ranking.push({ id: p.userId, usuario: p.userName, pontos: pontos })
-      : data.ranking[playerIdx].pontos += pontos;
-    return ({ ...p, pontos: pontos });
-  }).sort((a, b) => a.pontos < b.pontos ? 1 : (a.pontos > b.pontos) ? -1 : 0);
+  const homeScore = Number(matchInfo.response[0].goals.home);
+  const awayScore = Number(matchInfo.response[0].goals.away);
+  const resultado =
+    homeScore > awayScore ? 'V' : homeScore < awayScore ? 'D' : 'E';
+  const rankingDaRodada = data[grupo][data[grupo].activeRound.team.slug][
+    today.getFullYear()
+  ][data[grupo].activeRound.matchId].palpites
+    .map((p) => {
+      let pontos = 0;
+      if (p.resultado === resultado) pontos = 1;
+      if (
+        p.resultado === resultado &&
+        (p.homeScore === homeScore || p.awayScore === awayScore)
+      )
+        pontos = 2;
+      if (p.homeScore === homeScore && p.awayScore === awayScore) pontos = 3;
+      const playerIdx = data.ranking.findIndex(
+        (player) => player.id === p.userId,
+      );
+      playerIdx < 0
+        ? data[grupo][data[grupo].activeRound.team.slug].ranking.push({
+            id: p.userId,
+            usuario: p.userName,
+            pontos: pontos,
+          })
+        : (data[grupo][data[grupo].activeRound.team.slug].ranking[playerIdx].pontos += pontos);
+      return { ...p, pontos: pontos };
+    })
+    .sort((a, b) => (a.pontos < b.pontos ? 1 : a.pontos > b.pontos ? -1 : 0));
   if (rankingDaRodada[0].pontos === 0) {
     response = 'Ninguém pontuou na última rodada!';
-    data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId].ranking = response;
-    data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId].palpites = rankingDaRodada;
+    data[grupo][data[grupo].activeRound.team.slug][today.getFullYear()][data[grupo].activeRound.matchId] = {
+      ...data[grupo][data[grupo].activeRound.team.slug][today.getFullYear()][data[grupo].activeRound.matchId],
+      ranking: response,
+      palpites: rankingDaRodada,
+    };
     writeData(data);
     return client.sendMessage(grupo, response);
   }
-  response = `🏁🏁 Resultado do bolão da ${matchInfo.event.roundInfo.round}ª rodada 🏁🏁\n`;
-  response += `\nPartida: ${matchInfo.event.homeRedCards ? '🟥'.repeat(matchInfo.event.homeRedCards) : ''}${matchInfo.event.homeTeam.name} ${homeScore} x ${awayScore} ${matchInfo.event.awayTeam.name}${matchInfo.event.awayRedCards ? '🟥'.repeat(matchInfo.event.awayRedCards) : ''}\n`;
+  response = `🏁🏁 Resultado do bolão da ${data[grupo][data[grupo].activeRound.team.slug][today.getFullYear()][data[grupo].activeRound.matchId].rodada}ª rodada 🏁🏁\n`;
+  response += `\nPartida: ${matchInfo.teams.home.name} ${matchInfo.teams.goals.home} x ${matchInfo.teams.goals.away} ${matchInfo.teams.away.name}\n`;
   rankingDaRodada.forEach((pos, idx) => {
-    const medal = (idx === 0) ? '🥇 ' : (idx === 1) ? '🥈 ' : (idx === 2) ? '🥉 ' : '';
-    (pos.pontos > 0)
-      ? response += `\n${medal}${pos.userName} fez ${pos.pontos} ponto(s) com o palpite ${pos.homeScore} x ${pos.awayScore}`
-      : response += `\n${pos.userName} zerou com o palpite ${pos.homeScore} x ${pos.awayScore}`
+    const medal =
+      idx === 0 ? '🥇 ' : idx === 1 ? '🥈 ' : idx === 2 ? '🥉 ' : '';
+    pos.pontos > 0
+      ? (response += `\n${medal}${pos.userName} fez ${pos.pontos} ponto(s) com o palpite ${pos.homeScore} x ${pos.awayScore} em ${pos.data}`)
+      : (response += `\n${pos.userName} zerou com o palpite ${pos.homeScore} x ${pos.awayScore}`);
   });
   const nextMatch = pegaProximaRodada();
-  if (nextMatch.error) return client.sendMessage(grupo, 'Bolão finalizado! Sem mais rodadas para disputa. Veja como ficou o ranking escrevendo !ranking no canal (admin only)');
-  const matchStats = await getStats(data.activeRound.matchId);
-  client.sendMessage(grupo, matchStats);
-  const calculatedTimeout = (nextMatch.hora - 115200000) - today.getTime(); // Abre nova rodada 36 horas antes do jogo
+  if (nextMatch.error)
+    return client.sendMessage(
+      grupo,
+      prompts.bolao.encerra_bolao,
+    );
+  const calculatedTimeout = nextMatch.hora - 115200000 - today.getTime(); // Abre nova rodada 36 horas antes do jogo
   const proximaRodada = setTimeout(() => abreRodada(), calculatedTimeout);
   const dataDaAbertura = new Date(today.getTime() + calculatedTimeout);
-  const informaAbertura = setTimeout(() => client.sendMessage(grupo, `Próxima rodada com abertura programada para ${dataDaAbertura.toLocaleString('pt-br')}`), 3600000)
-  data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId].ranking = response;
-  data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId].palpites = rankingDaRodada;
-  data.activeRound = ({ ...data.activeRound, matchId: null, palpiteiros: [] });
+  const informaAbertura = setTimeout(
+    () =>
+      client.sendMessage(
+        grupo,
+        `Próxima rodada com abertura programada para ${dataDaAbertura.toLocaleString(
+          'pt-br',
+        )}`,
+      ),
+    3600000,
+  );
+  data[grupo][data[grupo].activeRound.team.slug][today.getFullYear()][data[grupo].activeRound.matchId] = {
+    ...data[grupo][data[grupo].activeRound.team.slug][today.getFullYear()][data[grupo].activeRound.matchId],
+    ranking: response,
+    palpites: rankingDaRodada,
+  };
+  data[grupo].activeRound = {
+    ...data[grupo].activeRound,
+    matchId: null,
+    palpiteiros: []
+  };
   writeData(data);
   return client.sendMessage(grupo, response);
-}
+};
 
-const getStats = async (matchId) => {
+const predictions = async (grupo) => {
   const today = new Date();
-  const match = data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][matchId];
-  const homeTeam = match.homeTeam;
-  const awayTeam = match.awayTeam;
+  const nextMatch =
+    data[grupo][data[grupo].activeRound.team.slug][today.getFullYear()][
+      data[grupo].activeRound.matchId
+    ];
+  if (nextMatch && Object.hasOwn(nextMatch, 'predictions'))
+    return client.sendMessage(grupo, nextMatch.predictions.stats);
   try {
-    const responseFromApi = await fetchApi({ url: process.env.FOOTAPI7_URL + '/match/' + matchId + '/statistics', host: process.env.FOOTAPI7_HOST });
-    const matchStats = responseFromApi.statistics.find((item) => item.period === 'ALL');
-    let formatStats = `Estatísticas de ${homeTeam} x ${awayTeam}`;
-    matchStats.groups.forEach((stat) => {
-      formatStats += `\n\n 👁‍🗨 *${stat.groupName}*`;
-      stat.statisticsItems.forEach((s) => {
-        formatStats += `\n${s.name}: ${s.home} x ${s.away}`
-      });
+    const getPredictions = await fetchWithParams({
+      url: process.env.FOOTBALL_API_URL + '/predictions',
+      host: process.env.FOOTBALL_API_HOST,
+      params: { fixture: data[grupo].activeRound.matchId },
     });
-    return formatStats;
-  } catch (err) {
-    return ({ error: true });
-  }
-}
-
-const predictions = async (group) => {
-  const today = new Date();
-  const nextMatch = data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId];
-  if (nextMatch && nextMatch.predictions) return client.sendMessage(group, nextMatch.predictions.stats);
-  try {
-    const getTeam = await fetchWithParams({ url: process.env.FOOTBALL_API_URL + '/teams', host: process.env.FOOTBALL_API_HOST, params: { name: data.activeRound.team } });
-    // const getTeam = await axios.request(predictions_options('/teams', { name: data.activeRound.team }));
-    if (getTeam.response.length < 1) throw new Error('Nenhum time foi encontrado. Verifique as configurações de time.')
-    const teamId = getTeam.response[0].team.id;
-    const getNextMatch = await fetchWithParams({ url: process.env.FOOTBALL_API_URL + '/fixtures', host: process.env.FOOTBALL_API_HOST, params: { team: teamId, next: '1' } });
-    // const getNextMatch = await axios.request(predictions_options('/fixtures', { team: teamId, next: '1' }));
-    if (!getNextMatch.response) throw new Error('Não existem previsões na API');
-    const nextMatchId = getNextMatch.response[0].fixture.id;
-    const getPredictions = await fetchWithParams({ url: process.env.FOOTBALL_API_URL + '/predictions', host: process.env.FOOTBALL_API_HOST, params: { fixture: nextMatchId } });
-    // const getPredictions = await axios.request(predictions_options('/predictions', { fixture: nextMatchId }));
     const superStats = formatPredicts(getPredictions.response[0]);
-    data[data.activeRound.grupo][data.activeRound.team][today.getFullYear()][data.activeRound.matchId].predictions = { idMatch: nextMatchId, stats: superStats };
+    data[grupo][data[grupo].activeRound.team][today.getFullYear()][
+      data[grupo].activeRound.matchId
+    ].predictions = {
+      stats: superStats,
+    };
     writeData(data);
-    return client.sendMessage(group, superStats);
+    return client.sendMessage(grupo, superStats);
   } catch (err) {
     console.error(err);
     return sendAdmin(err);
   }
-}
+};
 
 module.exports = {
   start,
@@ -206,6 +286,5 @@ module.exports = {
   publicaRodada,
   fechaRodada,
   pegaProximaRodada,
-  getStats,
   predictions,
-}
+};

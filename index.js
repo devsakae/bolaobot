@@ -57,7 +57,7 @@ client.on('message', async (m) => {
   return await predictions(m.from);
 
   // Módulo Jokes (usa: RapidApi/Dad Jokes, Useless Fact Api)
-  if (m.mentionedIds.includes(process.env.BOT_NUMBER)) {
+  if (m.mentionedIds.includes(process.env.BOT_NUMBER) && !m.hasQuotedMsg) {
     console.log('Alguém mencionou o bot no grupo');
     const chat = await m.getChat();
     chat.sendStateTyping();
