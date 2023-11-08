@@ -4,12 +4,16 @@ const { fetchApi } = require('../../utils/fetchApi');
 
 const oraculo = [
   'Sim. Definitivamente sim.',
-  'É claro que não',
+  'É claro que não 👎',
   'Por óbvio, a resposta é um retumbante SIM',
-  'Jamais!!! Tá maluco??',
+  'Jamais!!! Tá maluco?? 🤬',
   'Hummmm... Pode ser...',
-  'Claro claro, vai na frente que o Bot já vai',
-
+  'Claro claro, vai na frente que o Bot já vai 😆',
+  'Depende, sua mãe gosta?',
+  'Pode ser, quanto você me paga?',
+  'Fechado! TMJ #sqn',
+  'Boh se não',
+  'Não me sinto confortável em responder assim com essa grosseria toda'
 ]
 let jokeLimit = false;
 
