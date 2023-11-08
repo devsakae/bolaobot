@@ -187,7 +187,7 @@ const fechaRodada = async (grupo) => {
       )
         pontos = 2;
       if (p.homeScore === homeScore && p.awayScore === awayScore) pontos = 3;
-      const playerIdx = data.ranking.findIndex(
+      const playerIdx = data[grupo][data[grupo].activeRound.team.slug].ranking.findIndex(
         (player) => player.id === p.userId,
       );
       playerIdx < 0
@@ -208,7 +208,7 @@ const fechaRodada = async (grupo) => {
       palpites: rankingDaRodada,
     };
     writeData(data);
-    return client.sendMessage(grupo, response);
+    return sendAdmin(response) // client.sendMessage(grupo, response);
   }
   response = `🏁🏁 Resultado do bolão da ${data[grupo][data[grupo].activeRound.team.slug][today.getFullYear()][data[grupo].activeRound.matchId].rodada}ª rodada 🏁🏁\n`;
   response += `\nPartida: ${matchInfo.teams.home.name} ${matchInfo.teams.goals.home} x ${matchInfo.teams.goals.away} ${matchInfo.teams.away.name}\n`;
@@ -220,11 +220,7 @@ const fechaRodada = async (grupo) => {
       : (response += `\n${pos.userName} zerou com o palpite ${pos.homeScore} x ${pos.awayScore}`);
   });
   const nextMatch = pegaProximaRodada();
-  if (nextMatch.error)
-    return client.sendMessage(
-      grupo,
-      prompts.bolao.encerra_bolao,
-    );
+  if (nextMatch.error) return sendAdmin(prompts.bolao.encerra_bolao) // client.sendMessage(grupo, prompts.bolao.encerra_bolao);
   const calculatedTimeout = nextMatch.hora - 115200000 - today.getTime(); // Abre nova rodada 36 horas antes do jogo
   const proximaRodada = setTimeout(() => abreRodada(), calculatedTimeout);
   const dataDaAbertura = new Date(today.getTime() + calculatedTimeout);
@@ -249,7 +245,7 @@ const fechaRodada = async (grupo) => {
     palpiteiros: []
   };
   writeData(data);
-  return client.sendMessage(grupo, response);
+  return sendAdmin(response); // client.sendMessage(grupo, response);
 };
 
 const predictions = async (grupo) => {
