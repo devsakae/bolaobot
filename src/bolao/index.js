@@ -34,10 +34,10 @@ const bolao = async (m) => {
     client.sendMessage(m.from, ranking);
   }
   if (m.author === process.env.BOT_OWNER && m.body.startsWith('!bolao')) {
-    console.info('Acessando comando !bolao');
     const command = getCommand(m.body);
     const grupo = m.from.split('@')[0];
     if (command && command.startsWith('start')) {
+      console.info('Acessando comando !bolao start');
       const searchedTeam = new RegExp(command.substring(5).trimStart(), "gi");
       const team = data.teams.find((team) => team.name.match(searchedTeam) || team.slug.match(searchedTeam));
       if (!team) {
@@ -48,28 +48,20 @@ const bolao = async (m) => {
       if (data[grupo] && data[grupo][team.slug]) return m.reply(prompts.bolao.active_bolao);
       return await start({ grupo: m.from, team: team });
     };
-    if (command && command.startsWith('calcula')) fechaRodada();
-    return m.reply('Oi, tô vivo')
-  }
-  if (m.author === process.env.BOT_OWNER)  {
-    if (m.body.startsWith('!restart')) {
-      console.info('Acessando comando !restart');
+    if (command && command.startsWith('restart')) {
+      console.info('Acessando comando !bolao restart');
       const today = new Date();
       if (data[m.from].activeRound.listening) {
         return publicaRodada({ grupo: m.from, match: data[m.from][data[m.from].activeRound.team.slug][today.getFullYear()][data[m.from].activeRound.matchId] });
       }
       const nextMatch = await pegaProximaRodada(m.from);
       if (nextMatch.error) return client.sendMessage(m.author, 'Bolão finalizado! Sem mais rodadas para disputa');
-      const calculatedTimeout = (nextMatch.hora - 115200000) - today.getTime(); // Abre nova rodada 36 horas antes do jogo
+      const calculatedTimeout = (nextMatch.hora - 115200000) - today.getTime();
       const proximaRodada = setTimeout(() => abreRodada(m.from), calculatedTimeout);
-      // const proximaRodada = setTimeout(() => abreRodada(), 10000); // TEST
       const quandoAbre = new Date(today.getTime() + calculatedTimeout);
       return client.sendMessage(m.from, `Bolão programado para abertura de rodada em ${quandoAbre.toLocaleString('pt-br')}`);
     }
-    if (m.body.startsWith('!fecharodada')) {
-      console.info('Acessando comando !fecharodada');
-      return fechaRodada(m.from);
-    }
+    return;
   }
   return;
 }

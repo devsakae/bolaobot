@@ -38,25 +38,25 @@ const pegaProximaRodada = async (grupo) => {
       return client.sendMessage(grupo, prompts.bolao.no_matches);
     const today = new Date();
     Object.hasOwn(data, grupo) &&
-    Object.hasOwn(grupo, 'activeRound') &&
-    Object.hasOwn(data[grupo].activeRound, 'team')
+      Object.hasOwn(grupo, 'activeRound') &&
+      Object.hasOwn(data[grupo].activeRound, 'team')
       ? (data[grupo] = {
-          ...data[grupo],
-          [data[grupo].activeRound.team.slug]: {
-            ...data[grupo][data[grupo].activeRound.team.slug],
-            [today.getFullYear()]: {
-              ...data[grupo][data[grupo].activeRound.team.slug][
-                today.getFullYear()
-              ],
-            },
+        ...data[grupo],
+        [data[grupo].activeRound.team.slug]: {
+          ...data[grupo][data[grupo].activeRound.team.slug],
+          [today.getFullYear()]: {
+            ...data[grupo][data[grupo].activeRound.team.slug][
+            today.getFullYear()
+            ],
           },
-        })
+        },
+      })
       : (data[grupo] = {
-          ...data[grupo],
-          [data[grupo].activeRound.team.slug]: {
-            [today.getFullYear()]: {},
-          },
-        });
+        ...data[grupo],
+        [data[grupo].activeRound.team.slug]: {
+          [today.getFullYear()]: {},
+        },
+      });
     let singleMatch;
     getNextMatches.response.forEach((event, idx) => {
       const matchPack = {
@@ -72,9 +72,10 @@ const pegaProximaRodada = async (grupo) => {
         palpites: [],
       };
       if (idx === 0) singleMatch = matchPack;
-      data[grupo][data[grupo].activeRound.team.slug][today.getFullYear()][
-        event.fixture.id
-      ] = matchPack;
+      data[grupo][data[grupo].activeRound.team.slug][today.getFullYear()] = {
+        ...data[grupo][data[grupo].activeRound.team.slug][today.getFullYear()],
+        [event.fixture.id]: matchPack
+      }
     });
     writeData(data);
     return singleMatch;
@@ -94,7 +95,10 @@ const abreRodada = async (grupo) => {
     palpiteiros: [],
   };
   writeData(data);
-  publicaRodada({ grupo: grupo, match: nextMatch });
+  const today = new Date();
+  const timeoutProgramado = (nextMatch.hora - today.getTime()) - (36 * 3600000)
+  const publicacaoProgramada = setTimeout(() => publicaRodada({ grupo: grupo, match: nextMatch }), timeoutProgramado);
+  return sendAdmin(`Agendamento de ${nextMatch.homeTeam} x ${nextMatch.awayTeam} (ID (${nextMatch.id}) realizado.\n\nJogo ocorrerá em ${new Date(nextMatch.hora)} \nPublicação no grupo em ${new Date(today.getTime() + timeoutProgramado)}`)
 };
 
 const publicaRodada = ({ grupo, match }) => {
@@ -127,7 +131,7 @@ const encerraPalpite = (grupo) => {
     data[grupo][data[grupo].activeRound.team.slug][today.getFullYear()][
       data[grupo].activeRound.matchId
     ].palpites.length < 1
-    )
+  )
     return client.sendMessage(grupo, 'Ninguém palpitou nessa rodada!');
   const listaDePalpites = listaPalpites(grupo);
   client.sendMessage(grupo, encerramento + listaDePalpites);
@@ -139,7 +143,7 @@ const encerraPalpite = (grupo) => {
     () =>
       client.sendMessage(
         grupo,
-        'Ative o modo narrador escrevendo *!lancealance* após o início da partida 🐯',
+        'Quer acompanhar a partida?\n\nDigite *!highlights* no grupo que eu publico os melhores momentos (pra quem não fala inglês)',
       ),
     10 * 60000,
   );
@@ -167,6 +171,7 @@ const buscaResultado = async ({ grupo, tentativa }) => {
 }
 
 const fechaRodada = async (grupo) => {
+  if (!data[grupo].activeRound.listening) return client.sendMessage(grupo, 'A rodada já foi fechada');
   const matchInfo = await buscaResultado({ grupo: grupo, tentativa: 1 })
   if (matchInfo.error) return client.sendMessage(
     grupo,
@@ -195,10 +200,10 @@ const fechaRodada = async (grupo) => {
       );
       playerIdx < 0
         ? data[grupo][data[grupo].activeRound.team.slug].ranking.push({
-            id: p.userId,
-            usuario: p.userName,
-            pontos: pontos,
-          })
+          id: p.userId,
+          usuario: p.userName,
+          pontos: pontos,
+        })
         : (data[grupo][data[grupo].activeRound.team.slug].ranking[playerIdx].pontos += pontos);
       return { ...p, pontos: pontos };
     })
@@ -219,25 +224,11 @@ const fechaRodada = async (grupo) => {
     const medal =
       idx === 0 ? '🥇 ' : idx === 1 ? '🥈 ' : idx === 2 ? '🥉 ' : '';
     pos.pontos > 0
-      ? (response += `\n${medal}${pos.userName} fez ${pos.pontos} ponto(s) com o palpite ${pos.homeScore} x ${pos.awayScore} em ${pos.data}`)
+      ? (response += `\n${medal}${pos.userName} fez ${pos.pontos} ponto(s) com o palpite ${pos.homeScore} x ${pos.awayScore} ${pos.data ? `em ${pos.data}` : ''}`)
       : (response += `\n${pos.userName} zerou com o palpite ${pos.homeScore} x ${pos.awayScore}`);
   });
-  // const nextMatch = pegaProximaRodada();
-  // if (nextMatch.error) return sendAdmin(prompts.bolao.encerra_bolao) // client.sendMessage(grupo, prompts.bolao.encerra_bolao);
-  // const calculatedTimeout = nextMatch.hora - 115200000 - today.getTime(); // Abre nova rodada 36 horas antes do jogo
-  // const proximaRodada = setTimeout(() => abreRodada(), calculatedTimeout);
-  // const dataDaAbertura = new Date(today.getTime() + calculatedTimeout);
-  // const informaAbertura = setTimeout(
-  //   () =>
-  //     client.sendMessage(
-  //       grupo,
-  //       `Próxima rodada com abertura programada para ${dataDaAbertura.toLocaleString(
-  //         'pt-br',
-  //       )}`,
-  //     ),
-  //   3600000,
-  // );
-  const preparaProximaRodada = setTimeout(() => abreRodada(grupo), 60000); // Abre próxima rodada em 1 hora
+  console.info('Abre próxima rodada em 1 hora');
+  const preparaProximaRodada = setTimeout(() => abreRodada(grupo), 60000);
   data[grupo][data[grupo].activeRound.team.slug][today.getFullYear()][data[grupo].activeRound.matchId] = {
     ...data[grupo][data[grupo].activeRound.team.slug][today.getFullYear()][data[grupo].activeRound.matchId],
     ranking: response,
@@ -252,28 +243,21 @@ const fechaRodada = async (grupo) => {
   return client.sendMessage(grupo, response);
 };
 
-const predictions = async (grupo) => {
+const predictions = async (m) => {
   const today = new Date();
-  const nextMatch =
-    data[grupo][data[grupo].activeRound.team.slug][today.getFullYear()][
-      data[grupo].activeRound.matchId
-    ];
-  if (nextMatch && Object.hasOwn(nextMatch, 'predictions'))
-    return client.sendMessage(grupo, nextMatch.predictions.stats);
+  if (!data[m.from].activeRound.matchId) return m.reply('Nenhuma rodada aberta no momento!')
+  const nextMatch = data[m.from][data[m.from].activeRound.team.slug][today.getFullYear()][data[m.from].activeRound.matchId];
+  if (data[m.from].activeRound.listening && nextMatch && Object.hasOwn(nextMatch, 'predictions')) return client.sendMessage(m.from, nextMatch.predictions)
   try {
     const getPredictions = await fetchWithParams({
       url: process.env.FOOTBALL_API_URL + '/predictions',
       host: process.env.FOOTBALL_API_HOST,
-      params: { fixture: data[grupo].activeRound.matchId },
+      params: { fixture: data[m.from].activeRound.matchId },
     });
     const superStats = formatPredicts(getPredictions.response[0]);
-    data[grupo][data[grupo].activeRound.team][today.getFullYear()][
-      data[grupo].activeRound.matchId
-    ].predictions = {
-      stats: superStats,
-    };
+    data[m.from][data[m.from].activeRound.team][today.getFullYear()][data[m.from].activeRound.matchId].predictions = superStats;
     writeData(data);
-    return client.sendMessage(grupo, superStats);
+    return client.sendMessage(m.from, superStats);
   } catch (err) {
     console.error(err);
     return sendAdmin(err);

@@ -38,6 +38,19 @@ const { narrador } = require('./src/narrador');
 // pm2 start npm --name "BolaoBot" -- start && pm2 monit
 
 client.on('message', async (m) => {
+  // Help system
+  if (m.body === '!help') {
+    let response = prompts.admin.help;
+    // (Inserir switch de módulos na instalação)
+    response += prompts.admin.mod_quotes;
+    response += prompts.admin.mod_jogounotigre;
+    response += prompts.admin.mod_jokes;
+    response += prompts.admin.mod_stats;
+    response += prompts.admin.mod_narrador;
+    response += prompts.admin.mod_bolaor;
+    return m.reply(response);
+  }
+
   // Módulo Quotes (usa: MongoDB)
   if (
     m.body.startsWith('!quote') ||
@@ -53,8 +66,10 @@ client.on('message', async (m) => {
   if (
     m.body.startsWith('!stats') &&
     (m.author === process.env.BOT_OWNER || m.from === process.env.BOT_OWNER)
-  )
-  return await predictions(m.from);
+  ) {
+    console.info('Admin pediu !stats');
+    return await predictions(m);
+  }
 
   // Módulo Jokes (usa: RapidApi/Dad Jokes, Useless Fact Api)
   if (m.mentionedIds.includes(process.env.BOT_NUMBER) && !m.hasQuotedMsg) {
@@ -65,8 +80,8 @@ client.on('message', async (m) => {
   };
 
   // Módulo narrador de jogo
-  if (m.body.startsWith('!lancealance')) {
-    console.log('Alguém disse !lancealance');
+  if (m.body.startsWith('!highlights')) {
+    console.log('Alguém disse !highlights');
     return await narrador(m);
   }
 

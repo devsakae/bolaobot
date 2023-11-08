@@ -2,42 +2,50 @@ const data = require('../bolao/data/data.json');
 const { client } = require('../connections');
 const { formatLance } = require('./utils/functions');
 const { fetchWithParams } = require('../../utils/fetchApi');
+const { sendAdmin } = require('../bolao/utils/functions');
+const { writeData } = require('../bolao/utils/fileHandler');
 
 let modoNarrador = false;
 let matchEvents = [];
 
-const publicaLance = async (m, chat) => {
+const publicaLance = async (m) => {
+  const chat = await client.getChatById(m.from);
   await fetchWithParams({
     url: process.env.FOOTBALL_API_URL + '/fixtures',
     host: process.env.FOOTBALL_API_HOST,
     params: { id: data[m.from].activeRound.matchId },
   })
     .then(({ response }) => {
+      if (response[0].fixture.status.short === 'NS') return sendAdmin('Partida não começou e já estou narrando');
       const { events } = response[0];
-      const placar = `${response[0].teams.home.name} ${response[0].goals.home} x ${response[0].goals.away} ${response[0].teams.away.name}`;
       if (events.length === matchEvents.length) return;
+      const placar = `${response[0].teams.home.name} ${response[0].goals.home} x ${response[0].goals.away} ${response[0].teams.away.name}`;
+      if (response[0].fixture.status.short === 'HT') chat.setSubject(`[Intervalo] ${placar}`);
       if (response[0].fixture.status.short === 'FT') {
+        chat.setSubject(`[Final] ${placar}`)
+        const today = new Date();
+        data[m.from][data[m.from].activeRound.team.slug][today.getFullYear()][response[0].fixture.id].match = matchEvents;
+        writeData(data);
         () => clearInterval();
         client.sendMessage(
           m.from,
-          `🛑 *Fim de jogo*! Resultado final: ${placar}`,
+          `[${response[0].fixture.status.elapsed}'] Fim de jogo!\n\nResultado final: ${placar}`,
         );
         matchEvents = [];
         return console.log('Partida finalizada');
       }
       const newEvents = matchEvents.length - events.length;
       matchEvents = events;
-      let historico = 'Muita coisa acontecendo!\n';
+      let historico = '';
       if (newEvents < -1) {
         if (events.some((ev) => ev.type === 'Goal')) chat.setSubject(placar);
         events
           .slice(newEvents)
-          .forEach((ev) => (historico += `\n${formatLance(ev)}`));
+          .forEach((ev) => historico += `\n${formatLance(ev)}`);
         return client.sendMessage(m.from, historico);
       }
       let ultimoLance = formatLance(events.at(-1));
-      if (newEvents > -2 && events.at(-1).type === 'Goal')
-        chat.setSubject(placar);
+      if (events.at(-1).type === 'Goal') chat.setSubject(placar);
       return client.sendMessage(m.from, ultimoLance);
     })
     .catch((err) => console.error('ERRO:', err));
@@ -49,32 +57,39 @@ const narrador = async (m) => {
   const today = new Date();
   const matchObj = data[m.from].activeRound.matchId;
   if (
-    today.getTime() < matchObj.hora ||
-    today.getTime() > matchObj.hora + 110 * 60000
+    today.getTime() < matchObj.hora + (5 * 60000) ||
+    today.getTime() > matchObj.hora + (110 * 60000)
   )
     return m.reply('Modo narrador só funciona *durante* a partida 😔');
   modoNarrador = true;
   const backToNormal = setTimeout(() => (modoNarrador = false), 24 * 3600000);
-  let historico = 'Resumo do jogo até o momento';
+  let historico = 'Obrigado Tigrelino. Como sempre um Tigre profissional e experiente no comando da reportagem.\n\nResumo de';
   await fetchWithParams({
     url: process.env.FOOTBALL_API_URL + '/fixtures',
     host: process.env.FOOTBALL_API_HOST,
     params: { id: data[m.from].activeRound.matchId },
   })
-    .then(({ response }) => {
-      const placar = `${response[0].teams.home.name} ${response[0].goals.home} x ${response[0].goals.away} ${response[0].teams.away.name}`;
+  .then(({ response }) => {
       chat.setSubject(placar);
-      historico += ` (${response[0].fixture.status.elapsed}' - ${response[0].fixture.status.long})\n`;
-      matchEvents = response[0].events;
-      client.sendMessage(
-        m.from,
-        `🎙 Bem amigos do grupo! Acompanhe comigo os melhores lances de *${placar}*!`,
-      );
-      response[0].events.forEach((ev) => (historico += `\n${formatLance(ev)}`));
+      const placar = ` ${response[0].teams.home.name} ${response[0].goals.home} x ${response[0].goals.away} ${response[0].teams.away.name}`;
+      client.sendMessage(m.from, 'Informações do jogo de hoje com o nosso repórter especial...\n\nÉ com você, Tigrelino!');
+      client.sendMessage(m.from, '🐯 DAI BLS OGE VAMO GANA +1SUBI TIGREEEEE\n\nEEEEEEEEEEE\n\n\n\n\n⇡ P SIMA DELIS');
+      const { lineups, events } = response[0];
+      lineups.forEach((team) => {
+        let iscalasao = `🐯 A ISCALA SAO DO ${team.team.name.toUpperCase()} VENDE *${team.formation}* MUINTO TELIJENTE PARESE EU NO CM: `
+        team.startXI[0].forEach(({ player }) => iscalasao += `${player.number} - ${player.name.toUpperCase()} (${player.pos}) `)
+        client.sendMessage(m.from, iscalasao);
+      })
+      let historico = `Obrigado Tigrelino, um massacote profissional e deveras responsável na condução do microfone.\n\nAcompanhe aqui nesse canal os melhores momentos de ${placar} (${response[0].fixture.status.elapsed}' - ${response[0].fixture.status.long})`;
+      if (events.length > 0) {
+        historico += `Lances do jogo\n`;
+        events.forEach((ev) => (historico += `\n${formatLance(ev)}`));
+      }
+      matchEvents = events;
     })
     .catch((err) => console.error(err));
-  client.sendMessage(m.from, historico);
-  const timerDeNarracao = setInterval(() => publicaLance(m, chat), 60000);
+  const pequenoAtraso = setTimeout(() => client.sendMessage(m.from, historico), 5000);
+  const timerDeNarracao = setInterval(() => publicaLance(m), 60000);
   const apitoFinal = setTimeout(() => {
     console.info('Encerramento programado');
     client.sendMessage(m.from, 'Obrigado pela sua paciência! FIM');

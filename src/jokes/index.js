@@ -13,7 +13,14 @@ const oraculo = [
   'Pode ser, quanto você me paga?',
   'Fechado! TMJ #sqn',
   'Boh se não',
-  'Não me sinto confortável em responder assim com essa grosseria toda'
+  'Não me sinto confortável em responder assim com essa grosseria toda',
+  'Que pergunta cretina. Não vou responder essa PIADA 😣',
+  '42.',
+  'Putz olha essa pergunta... Calaboca...',
+  'Só se tua mãe quiser',
+  'Dependendo do quanto pagar, é lógico',
+  'Nem que me pagassem 1 milhão',
+  'Puta merda, olha essa pergunta... Me tira do grupo admin'
 ]
 let jokeLimit = false;
 

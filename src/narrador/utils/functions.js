@@ -10,7 +10,7 @@ const formatLance = (event) => {
         : response += `🟥 Cartão VERMELHO para *${event.player.name}* (${event.team.name})`
       break;
     case 'subst':
-      response += `🔄 Substituição no(a) ${event.team.name}: ❌ ${event.player.name} ↔️ ✅ ${event.assist.name}`;
+      response += `🔄 Substituição no(a) ${event.team.name}\n\nSAI ❌ ${event.player.name}\nENTRA ✅ ${event.assist.name}`;
       break;
     default:
       response += `${event.detail} de ${event.team.name}`
