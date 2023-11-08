@@ -7,7 +7,7 @@ const { habilitaPalpite, listaPalpites, getRanking } = require('./user');
 
 const bolao = async (m) => {
   if (!Object.keys(data).some((key) => key === m.from)) return;
-  if (m.hasQuotedMsg && Object.hasOwn(data, m.from) && Object.hasOwn(data[m.from], 'activeRound') && data[m.from].activeRound.listening) {
+  if (m.hasQuotedMsg && Object.hasOwn(data[m.from], 'activeRound') && data[m.from].activeRound.listening) {
     const isTopic = await m.getQuotedMessage();
     const matchingRegex = isTopic.body.match(/partida:\s\d+/);
     if (isTopic && isTopic.fromMe && matchingRegex) {
