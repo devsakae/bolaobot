@@ -208,7 +208,7 @@ const fechaRodada = async (grupo) => {
       palpites: rankingDaRodada,
     };
     writeData(data);
-    return sendAdmin(response) // client.sendMessage(grupo, response);
+    return client.sendMessage(grupo, response);
   }
   response = `🏁🏁 Resultado do bolão da ${data[grupo][data[grupo].activeRound.team.slug][today.getFullYear()][data[grupo].activeRound.matchId].rodada}ª rodada 🏁🏁\n`;
   response += `\nPartida: ${matchInfo.response[0].teams.home.name} ${matchInfo.response[0].goals.home} x ${matchInfo.response[0].goals.away} ${matchInfo.response[0].teams.away.name}\n`;
@@ -219,21 +219,22 @@ const fechaRodada = async (grupo) => {
       ? (response += `\n${medal}${pos.userName} fez ${pos.pontos} ponto(s) com o palpite ${pos.homeScore} x ${pos.awayScore} em ${pos.data}`)
       : (response += `\n${pos.userName} zerou com o palpite ${pos.homeScore} x ${pos.awayScore}`);
   });
-  const nextMatch = pegaProximaRodada();
-  if (nextMatch.error) return sendAdmin(prompts.bolao.encerra_bolao) // client.sendMessage(grupo, prompts.bolao.encerra_bolao);
-  const calculatedTimeout = nextMatch.hora - 115200000 - today.getTime(); // Abre nova rodada 36 horas antes do jogo
-  const proximaRodada = setTimeout(() => abreRodada(), calculatedTimeout);
-  const dataDaAbertura = new Date(today.getTime() + calculatedTimeout);
-  const informaAbertura = setTimeout(
-    () =>
-      client.sendMessage(
-        grupo,
-        `Próxima rodada com abertura programada para ${dataDaAbertura.toLocaleString(
-          'pt-br',
-        )}`,
-      ),
-    3600000,
-  );
+  // const nextMatch = pegaProximaRodada();
+  // if (nextMatch.error) return sendAdmin(prompts.bolao.encerra_bolao) // client.sendMessage(grupo, prompts.bolao.encerra_bolao);
+  // const calculatedTimeout = nextMatch.hora - 115200000 - today.getTime(); // Abre nova rodada 36 horas antes do jogo
+  // const proximaRodada = setTimeout(() => abreRodada(), calculatedTimeout);
+  // const dataDaAbertura = new Date(today.getTime() + calculatedTimeout);
+  // const informaAbertura = setTimeout(
+  //   () =>
+  //     client.sendMessage(
+  //       grupo,
+  //       `Próxima rodada com abertura programada para ${dataDaAbertura.toLocaleString(
+  //         'pt-br',
+  //       )}`,
+  //     ),
+  //   3600000,
+  // );
+  const preparaProximaRodada = setTimeout(() => abreRodada(grupo), 60000); // Abre próxima rodada em 1 hora
   data[grupo][data[grupo].activeRound.team.slug][today.getFullYear()][data[grupo].activeRound.matchId] = {
     ...data[grupo][data[grupo].activeRound.team.slug][today.getFullYear()][data[grupo].activeRound.matchId],
     ranking: response,
@@ -245,7 +246,7 @@ const fechaRodada = async (grupo) => {
     palpiteiros: []
   };
   writeData(data);
-  return sendAdmin(response); // client.sendMessage(grupo, response);
+  return client.sendMessage(grupo, response);
 };
 
 const predictions = async (grupo) => {

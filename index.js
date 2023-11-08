@@ -28,7 +28,6 @@ const { narrador } = require('./src/narrador');
         defaultdata.teams.forEach((team) => (allTeams += ' | ' + team.name));
         console.log(allTeams);
         // MÓDULO BOLÃO - FIM //
-        console.log('Teste') // teste
       });
   } catch (err) {
     return console.error(err);
