@@ -146,6 +146,7 @@ const encerraPalpite = (grupo) => {
 };
 
 const buscaResultado = async ({ grupo, tentativa }) => {
+  const today = new Date();
   if (tentativa > 5) return client.sendMessage(process.env.BOT_OWNER, 'Erro ao buscar resultado da partida. Verifique a API.');
   const matchInfo = await fetchWithParams({
     url: process.env.FOOTBALL_API_URL + '/fixtures',
@@ -154,12 +155,14 @@ const buscaResultado = async ({ grupo, tentativa }) => {
       id: data[grupo].activeRound.matchId,
     },
   });
-  if ((!matchInfo || matchInfo.response[0].fixture.status.short !== 'FT')) {
+  if (!matchInfo || matchInfo.response[0].fixture.status.short !== 'FT') {
     console.error('Fetch não realizado, será feita a tentativa n.', tentativa);
     const fetchAgain = setTimeout(() => fechaRodada({ grupo: grupo, tentativa: tentativa + 1 }), 45 * 60000);
     if (tentativa === 1) return { error: true }
     return;
   }
+  data[grupo][data[grupo].activeRound.team.slug][today.getFullYear()][data[grupo].activeRound.matchId].matchInfo = matchInfo;
+  writeData(data);
   return matchInfo
 }
 
