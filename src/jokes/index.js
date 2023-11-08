@@ -2,9 +2,22 @@ const { default: axios } = require('axios');
 const { client } = require('../connections');
 const { fetchApi } = require('../../utils/fetchApi');
 
+const oraculo = [
+  'Sim. Definitivamente sim.',
+  'É claro que não',
+  'Por óbvio, a resposta é um retumbante SIM',
+  'Jamais!!! Tá maluco??',
+  'Hummmm... Pode ser...',
+  'Claro claro, vai na frente que o Bot já vai',
+
+]
 let jokeLimit = false;
 
 const replyUser = async (m) => {
+  if (m.body.endsWith('?')) {
+    const random = Math.floor(Math.random() * oraculo.length);
+    return m.reply(oraculo[random]);
+  }
   if (m.body.match(/piada/gi) && !jokeLimit) {
     jokeLimit = true;
     const joke = await getJokes();

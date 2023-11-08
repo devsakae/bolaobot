@@ -211,7 +211,7 @@ const fechaRodada = async (grupo) => {
     return sendAdmin(response) // client.sendMessage(grupo, response);
   }
   response = `🏁🏁 Resultado do bolão da ${data[grupo][data[grupo].activeRound.team.slug][today.getFullYear()][data[grupo].activeRound.matchId].rodada}ª rodada 🏁🏁\n`;
-  response += `\nPartida: ${matchInfo.teams.home.name} ${matchInfo.teams.goals.home} x ${matchInfo.teams.goals.away} ${matchInfo.teams.away.name}\n`;
+  response += `\nPartida: ${matchInfo.response[0].teams.home.name} ${matchInfo.response[0].teams.goals.home} x ${matchInfo.response[0].teams.goals.away} ${matchInfo.response[0].teams.away.name}\n`;
   rankingDaRodada.forEach((pos, idx) => {
     const medal =
       idx === 0 ? '🥇 ' : idx === 1 ? '🥈 ' : idx === 2 ? '🥉 ' : '';
