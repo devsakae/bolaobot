@@ -47,7 +47,7 @@ client.on('message', async (m) => {
     response += prompts.admin.mod_jokes;
     response += prompts.admin.mod_stats;
     response += prompts.admin.mod_narrador;
-    response += prompts.admin.mod_bolaor;
+    response += prompts.admin.mod_bolao;
     return m.reply(response);
   }
 
