@@ -2,11 +2,10 @@ const data = require('./data/data.json');
 const prompts = require('./data/prompts.json');
 const { client } = require('../connections');
 const { getCommand } = require('./utils/functions');
-const { start, abreRodada, fechaRodada, pegaProximaRodada, publicaRodada } = require('./admin');
+const { start, abreRodada, pegaProximaRodada, publicaRodada } = require('./admin');
 const { habilitaPalpite, listaPalpites, getRanking } = require('./user');
 
 const bolao = async (m) => {
-  if (!Object.keys(data).some((key) => key === m.from)) return;
   if (m.hasQuotedMsg && Object.hasOwn(data[m.from], 'activeRound') && data[m.from].activeRound.listening) {
     const isTopic = await m.getQuotedMessage();
     const matchingRegex = isTopic.body.match(/partida:\s\d+/);

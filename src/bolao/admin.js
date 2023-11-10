@@ -34,29 +34,8 @@ const pegaProximaRodada = async (grupo) => {
         next: 3,
       },
     });
-    if (getNextMatches.response.length < 1)
-      return client.sendMessage(grupo, prompts.bolao.no_matches);
+    if (getNextMatches.response.length < 1) return { error: true };
     const today = new Date();
-    Object.hasOwn(data, grupo) &&
-      Object.hasOwn(grupo, 'activeRound') &&
-      Object.hasOwn(data[grupo].activeRound, 'team')
-      ? (data[grupo] = {
-        ...data[grupo],
-        [data[grupo].activeRound.team.slug]: {
-          ...data[grupo][data[grupo].activeRound.team.slug],
-          [today.getFullYear()]: {
-            ...data[grupo][data[grupo].activeRound.team.slug][
-            today.getFullYear()
-            ],
-          },
-        },
-      })
-      : (data[grupo] = {
-        ...data[grupo],
-        [data[grupo].activeRound.team.slug]: {
-          [today.getFullYear()]: {},
-        },
-      });
     let singleMatch;
     getNextMatches.response.forEach((event, idx) => {
       const matchPack = {
